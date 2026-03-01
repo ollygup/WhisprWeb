@@ -1,1 +1,95 @@
-/* You can add global styles to this file, and also import other style files */
+@font-face {
+    font-family: 'Sora';
+    src: url('/assets/fonts/Sora-Regular.ttf') format('ttf');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Sora';
+    src: url('/assets/fonts/Sora-Medium.ttf') format('ttf');
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Sora';
+    src: url('/assets/fonts/Sora-SemiBold.ttf') format('ttf');
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('/assets/fonts/JetBrainsMono-Regular.ttf') format('ttf');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('/assets/fonts/JetBrainsMono-Medium.ttf') format('ttf');
+    font-weight: 500;
+    font-display: swap;
+}
+
+// DARK MODE
+:root,
+[data-theme='dark'] {
+    --bg: #07090d;
+    --surface: #0d1117;
+
+    // Text
+    --text-primary: #dde4ee;
+    --text-secondary: #8a9ab0;
+    --text-tertiary: #4a5a6e;
+    --text-disabled: #2d3a47;
+
+    // UI
+    --muted: #3d4f63;
+    --divider: #1a2230;
+    --accent: #00d4ff;
+    --toggle-bg: #1a2230;
+    --toggle-fg: #dde4ee;
+
+    // Status
+    --status-ok: #22c55e;
+    --status-warn: #f59e0b;
+    --status-err: #ef4444;
+
+    // Button
+    --btn-text: #07090d;
+}
+
+// LIGHT MODE
+[data-theme='light'] {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+
+    // Text
+    --text-primary: #111318;
+    --text-secondary: #4a5360;
+    --text-tertiary: #8a929e;
+    --text-disabled: #c0c5cc;
+
+    // UI
+    --muted: #8a929e;
+    --divider: #e2e5ea;
+    --accent: #0099bb;
+    --toggle-bg: #e2e5ea;
+    --toggle-fg: #111318;
+
+    // Status
+    --status-ok: #16a34a;
+    --status-warn: #d97706;
+    --status-err: #dc2626;
+
+    // Button
+    --btn-text: #ffffff;
+}
+
+html,
+body {
+    background: var(--bg);
+    transition: background 0.25s ease;
+}
