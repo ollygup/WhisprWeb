@@ -272,6 +272,10 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .stat-card {
@@ -283,6 +287,15 @@
   border: 1px solid var(--divider);
   background: var(--bg);
   overflow: hidden;
+
+  @media (max-width: 480px) {
+    padding: 7px 10px 6px;
+
+    // Last card spans full width when it would be alone (odd total)
+    &:last-child:nth-child(odd) {
+      grid-column: span 2;
+    }
+  }
 
   &.skeleton {
     opacity: 0.4;
