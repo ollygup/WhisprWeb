@@ -86,42 +86,50 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-// ── Split panel ───────────────────────────────────────────
-.split-panel {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+// ── Flipped-T panel ───────────────────────────────────────
+.t-panel {
   border: 1px solid var(--divider);
   border-radius: 14px;
   overflow: hidden;
 }
 
-// ── Pane ──────────────────────────────────────────────────
-.pane {
+.t-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.t-side {
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  background: transparent;
+}
+
+.t-vr {
+  width: 1px;
+  background: var(--divider);
+  align-self: stretch;
+}
+
+.t-hr {
+  height: 1px;
+  background: var(--divider);
+}
+
+.t-bottom {
   padding: 16px;
-}
-
-.pane-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 14px;
 }
 
+// ── Pane role label ───────────────────────────────────────
 .pane-role {
   font-size: 0.68rem;
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-tertiary);
   letter-spacing: 0.05em;
-}
-
-.pane-title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 2px;
 }
 
 // ── Quality badge ─────────────────────────────────────────
@@ -133,6 +141,19 @@
   padding: 3px 7px;
   border-radius: 5px;
   flex-shrink: 0;
+}
+
+.connection-quality {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quality-sub {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
 }
 
 // ── Code card ─────────────────────────────────────────────
@@ -249,7 +270,7 @@
 // ── Stats grid ────────────────────────────────────────────
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 
@@ -262,10 +283,6 @@
   border: 1px solid var(--divider);
   background: var(--bg);
   overflow: hidden;
-
-  &--wide {
-    grid-column: span 2;
-  }
 
   &.skeleton {
     opacity: 0.4;
@@ -310,24 +327,6 @@
   height: 36px;
   display: block;
   overflow: visible;
-}
-
-// ── Panel divider ─────────────────────────────────────────
-.panel-divider {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0 6px;
-  border-left: 1px solid var(--divider);
-  border-right: 1px solid var(--divider);
-  background: var(--bg);
-
-  &__icon {
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-    writing-mode: horizontal-tb;
-  }
 }
 
 // ── Bottleneck bar ────────────────────────────────────────
