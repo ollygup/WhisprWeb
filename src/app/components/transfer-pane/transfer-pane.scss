@@ -64,26 +64,6 @@
   50%       { opacity: 0.3; }
 }
 
-// ── Divider ───────────────────────────────────────────────
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 4px 0;
-
-  &__line {
-    flex: 1;
-    height: 1px;
-    background: var(--divider);
-  }
-
-  &__label {
-    font-size: 0.72rem;
-    color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
-  }
-}
-
 // ── Drop zone ─────────────────────────────────────────────
 .dropzone {
   display: flex;
@@ -153,81 +133,81 @@
 }
 
 // ── Directory picker ──────────────────────────────────────
-.dir-picker {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1.5px dashed var(--divider);
-  transition: border-color 0.2s ease;
+// .dir-picker {
+//   display: flex;
+//   align-items: center;
+//   justify-content: space-between;
+//   gap: 10px;
+//   padding: 12px 14px;
+//   border-radius: 12px;
+//   border: 1.5px dashed var(--divider);
+//   transition: border-color 0.2s ease;
 
-  &.selected { border-style: solid; }
+//   &.selected { border-style: solid; }
 
-  &__info {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-size: 0.82rem;
-    color: var(--text-secondary);   // was muted
-    overflow: hidden;
-    min-width: 0;
+//   &__info {
+//     display: flex;
+//     align-items: center;
+//     gap: 9px;
+//     font-size: 0.82rem;
+//     color: var(--text-secondary);   // was muted
+//     overflow: hidden;
+//     min-width: 0;
 
-    svg { flex-shrink: 0; }
-    span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  }
-}
+//     svg { flex-shrink: 0; }
+//     span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+//   }
+// }
 
-.dir-btn {
-  flex-shrink: 0;
-  padding: 5px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--divider);
-  background: transparent;
-  color: var(--text-primary);      // was text (same), explicit now
-  font-family: 'Sora', sans-serif;
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+// .dir-btn {
+//   flex-shrink: 0;
+//   padding: 5px 12px;
+//   border-radius: 8px;
+//   border: 1px solid var(--divider);
+//   background: transparent;
+//   color: var(--text-primary);      // was text (same), explicit now
+//   font-family: 'Sora', sans-serif;
+//   font-size: 0.78rem;
+//   cursor: pointer;
+//   transition: border-color 0.2s ease, color 0.2s ease;
 
-  &:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-}
+//   &:hover {
+//     border-color: var(--accent);
+//     color: var(--accent);
+//   }
+// }
 
-// ── Progress ──────────────────────────────────────────────
-.progress-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
+// // ── Progress ──────────────────────────────────────────────
+// .progress-wrap {
+//   display: flex;
+//   flex-direction: column;
+//   gap: 5px;
+// }
 
-.progress-bar {
-  width: 100%;
-  height: 3px;
-  border-radius: 99px;
-  background: var(--divider);
-  overflow: hidden;
+// .progress-bar {
+//   width: 100%;
+//   height: 3px;
+//   border-radius: 99px;
+//   background: var(--divider);
+//   overflow: hidden;
 
-  &__fill {
-    height: 100%;
-    border-radius: 99px;
-    background: var(--accent);
-    transition: width 0.08s linear;
-  }
-}
+//   &__fill {
+//     height: 100%;
+//     border-radius: 99px;
+//     background: var(--accent);
+//     transition: width 0.08s linear;
+//   }
+// }
 
-.progress-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--text-secondary);    // was muted
-  font-family: 'JetBrains Mono', monospace;
-}
+// .progress-meta {
+//   display: flex;
+//   justify-content: space-between;
+//   font-size: 0.72rem;
+//   color: var(--text-secondary);    // was muted
+//   font-family: 'JetBrains Mono', monospace;
+// }
 
-.done-tag { color: var(--status-ok); }
+// .done-tag { color: var(--status-ok); }
 
 // ── Buttons ───────────────────────────────────────────────
 .btn {

@@ -1,0 +1,204 @@
+<div class="user-pane">
+
+  <!-- ══ Top bar ═══════════════════════════════════════════ -->
+  <div class="top-bar">
+    <div class="status-wrap">
+      <span class="status-dot"
+            [style.background]="statusColor()"
+            [class.pulsing]="connecting()"></span>
+      <span class="status-label">{{ statusLabel() }}</span>
+    </div>
+
+    <button class="connect-btn connect-btn--ghost"
+            *ngIf="connecting()" disabled>
+      <span class="spinner"></span> Establishing…
+    </button>
+  </div>
+
+  <!-- ══ Error ═════════════════════════════════════════════ -->
+  <p class="error-msg" *ngIf="error()">{{ error() }}</p>
+
+  <!-- ══ Split panel ═══════════════════════════════════════ -->
+  <div class="split-panel">
+
+    <!-- ── LEFT: You ── -->
+    <div class="pane">
+      <div class="pane-header">
+        <div>
+          <div class="pane-role">● You</div>
+          <div class="pane-title">Local Node</div>
+        </div>
+        <div class="quality-badge"
+             *ngIf="getQuality(localStats()) as q"
+             [style.color]="q.color"
+             [style.background]="q.bg">
+          {{ q.label }}
+        </div>
+      </div>
+
+      <!-- Code card -->
+      <div class="code-card" *ngIf="userCode(); else localEmpty">
+        <div class="code-label">Your Code</div>
+        <div class="code-display">{{ userCode() }}</div>
+        <div class="code-actions">
+          <button class="action-btn" (click)="copyCode()" [class.copied]="copied()">
+            {{ copied() ? '✓ Copied' : 'Copy' }}
+          </button>
+          <button class="action-btn" (click)="openQR()">QR Code</button>
+        </div>
+      </div>
+      <ng-template #localEmpty>
+        <div class="empty-card">
+          <div class="empty-icon">◌</div>
+          <div class="empty-text">Not registered</div>
+        </div>
+      </ng-template>
+
+      <!-- Stats with sparklines — only when WebRTC is connected -->
+      <div class="stats-grid" *ngIf="localStats() as s">
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">Latency</span>
+            <span class="stat-value" [style.color]="getLatencyColor(s.latency)">
+              {{ s.latency }}<span class="stat-unit">ms</span>
+            </span>
+          </div>
+          <svg class="sparkline" viewBox="0 0 100 100" preserveAspectRatio="none"
+               *ngIf="localLatHistory().length > 1">
+            <polygon [attr.points]="buildSparkArea(localLatHistory())"
+                     [attr.fill]="getLatencyColor(s.latency)"
+                     fill-opacity="0.15"/>
+            <polyline [attr.points]="buildSparkPoints(localLatHistory())"
+                      fill="none"
+                      [attr.stroke]="getLatencyColor(s.latency)"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">Packet Loss</span>
+            <span class="stat-value" [style.color]="getLossColor(s.packetLoss)">
+              {{ s.packetLoss }}<span class="stat-unit">%</span>
+            </span>
+          </div>
+          <svg class="sparkline" viewBox="0 0 100 100" preserveAspectRatio="none"
+               *ngIf="localLossHistory().length > 1">
+            <polygon [attr.points]="buildSparkArea(localLossHistory())"
+                     [attr.fill]="getLossColor(s.packetLoss)"
+                     fill-opacity="0.15"/>
+            <polyline [attr.points]="buildSparkPoints(localLossHistory())"
+                      fill="none"
+                      [attr.stroke]="getLossColor(s.packetLoss)"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="stat-card stat-card--wide">
+          <div class="stat-header">
+            <span class="stat-label">Bandwidth</span>
+            <span class="stat-value stat-value--accent">
+              {{ s.bandwidth }}<span class="stat-unit">Mbps</span>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Skeleton only while waiting for first WebRTC stats -->
+      <div class="stats-grid" *ngIf="rtcConnected() && !localStats()">
+        <div class="stat-card skeleton" *ngFor="let i of [0,1,2]">
+          <div class="stat-header">
+            <span class="stat-label">Waiting…</span>
+            <span class="stat-value">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Divider ── -->
+    <div class="panel-divider">
+      <div class="panel-divider__icon">⇌</div>
+    </div>
+
+    <!-- ── RIGHT: Peer ── -->
+    <div class="pane">
+      <div class="pane-header">
+        <div>
+          <div class="pane-role">○ Peer</div>
+          <div class="pane-title">Remote Peer</div>
+        </div>
+      </div>
+
+      <!-- Peer code or input -->
+      <div class="code-card" *ngIf="peerCode(); else peerInputBlock">
+        <div class="code-label">Peer Code</div>
+        <div class="code-display">{{ peerCode() }}</div>
+        <div class="code-actions">
+          <button class="action-btn action-btn--danger" (click)="clearPeer()">Disconnect</button>
+        </div>
+      </div>
+      <ng-template #peerInputBlock>
+        <div class="empty-card empty-card--input">
+          <div class="empty-icon">◌</div>
+          <div class="empty-text">Awaiting peer</div>
+          <input
+            class="peer-input"
+            type="text"
+            placeholder="XXXX-XXXX"
+            maxlength="9"
+            [value]="peerInput()"
+            (input)="onPeerInput($any($event.target).value)"
+            [disabled]="!connected()" />
+          <button class="action-btn"
+                  [disabled]="!connected() || !peerInput()"
+                  (click)="connectToPeer()">
+            Connect
+          </button>
+        </div>
+      </ng-template>
+
+      <!-- No stats shown for peer — RTT from local stats already reflects both sides -->
+      <!-- Peer stats will be available once data channel exchange is implemented -->
+      <div class="peer-stats-placeholder" *ngIf="rtcConnected()">
+        <span class="placeholder-text">
+          Peer stats available once data exchange is enabled
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ══ Bottleneck footer — derived from local RTT ════════ -->
+  <div class="bottleneck-bar" *ngIf="getBottleneck() as bn">
+    <span class="bottleneck-label">BOTTLENECK</span>
+    <span class="bottleneck-node" [style.color]="bn.color">▲ {{ bn.label }}</span>
+  </div>
+
+</div>
+
+<!-- ══ QR Modal ═══════════════════════════════════════════ -->
+<div class="qr-backdrop" *ngIf="showQR()" (click)="closeQR()">
+  <div class="qr-modal" (click)="$event.stopPropagation()">
+    <div class="qr-modal-header">
+      <div class="qr-modal-title">Scan to Connect</div>
+      <div class="qr-modal-sub">Share this QR with your peer</div>
+    </div>
+    <div class="qr-wrapper">
+      <div class="qr-grid" [style.grid-template-columns]="'repeat(' + QR_CELLS + ', 10px)'">
+        <div class="qr-cell"
+             *ngFor="let cell of flatQR(); trackBy: trackByIndex"
+             [class.filled]="cell === 1">
+        </div>
+      </div>
+    </div>
+    <div class="qr-code-display">{{ userCode() }}</div>
+    <button class="action-btn" (click)="closeQR()">Close</button>
+  </div>
+</div>

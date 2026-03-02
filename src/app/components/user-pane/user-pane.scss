@@ -1,0 +1,444 @@
+// Component-scoped only. No layout/shell styles.
+// All colors from global CSS vars declared in styles.scss.
+
+.user-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+// ── Top bar ───────────────────────────────────────────────
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+
+  &.pulsing { animation: pulse 0.9s infinite; }
+}
+
+.status-label {
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-tertiary);
+}
+
+// ── Connect button ────────────────────────────────────────
+.connect-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+  background: var(--accent);
+  color: var(--btn-text);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: opacity 0.2s ease;
+
+  &:hover:not(:disabled) { opacity: 0.85; }
+  &:disabled             { opacity: 0.4; cursor: not-allowed; }
+
+  &--ghost {
+    background: transparent;
+    border-color: var(--divider);
+    color: var(--text-secondary);
+  }
+
+  &--danger {
+    background: transparent;
+    border-color: color-mix(in srgb, var(--status-err) 40%, transparent);
+    color: var(--status-err);
+  }
+}
+
+.spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  animation: spin 0.7s linear infinite;
+}
+
+// ── Error ─────────────────────────────────────────────────
+.error-msg {
+  font-size: 0.74rem;
+  color: var(--status-err);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+// ── Split panel ───────────────────────────────────────────
+.split-panel {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+// ── Pane ──────────────────────────────────────────────────
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.pane-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pane-role {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+}
+
+.pane-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+// ── Quality badge ─────────────────────────────────────────
+.quality-badge {
+  font-size: 0.62rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+// ── Code card ─────────────────────────────────────────────
+.code-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg));
+}
+
+.code-label {
+  font-size: 0.66rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.code-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.12em;
+}
+
+.code-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+// ── Empty card ────────────────────────────────────────────
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--divider);
+  text-align: center;
+
+  &--input {
+    align-items: stretch;
+    gap: 8px;
+  }
+}
+
+.empty-icon {
+  font-size: 1.2rem;
+  color: var(--text-tertiary);
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+// ── Peer input ────────────────────────────────────────────
+.peer-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  padding: 4px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.1em;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.2s ease;
+
+  &::placeholder { color: var(--text-tertiary); }
+  &:focus        { border-color: var(--accent); }
+  &:disabled     { opacity: 0.3; cursor: not-allowed; }
+}
+
+// ── Action buttons ────────────────────────────────────────
+.action-btn {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--divider);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+
+  &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  &:disabled             { opacity: 0.25; cursor: not-allowed; }
+
+  &.copied {
+    border-color: var(--status-ok);
+    color: var(--status-ok);
+  }
+
+  &--danger {
+    border-color: color-mix(in srgb, var(--status-err) 35%, transparent);
+    color: var(--status-err);
+    &:hover { border-color: var(--status-err); }
+  }
+}
+
+// ── Stats grid ────────────────────────────────────────────
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--divider);
+  background: var(--bg);
+  overflow: hidden;
+
+  &--wide {
+    grid-column: span 2;
+  }
+
+  &.skeleton {
+    opacity: 0.4;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 0.66rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+
+  &--accent { color: var(--accent); }
+}
+
+.stat-unit {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-left: 1px;
+}
+
+// ── Sparkline ─────────────────────────────────────────────
+.sparkline {
+  width: 100%;
+  height: 36px;
+  display: block;
+  overflow: visible;
+}
+
+// ── Panel divider ─────────────────────────────────────────
+.panel-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-left: 1px solid var(--divider);
+  border-right: 1px solid var(--divider);
+  background: var(--bg);
+
+  &__icon {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    writing-mode: horizontal-tb;
+  }
+}
+
+// ── Bottleneck bar ────────────────────────────────────────
+.bottleneck-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--status-err) 30%, transparent);
+  background: color-mix(in srgb, var(--status-err) 5%, transparent);
+}
+
+.bottleneck-label {
+  font-size: 0.62rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.bottleneck-node {
+  font-size: 0.76rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+// ── QR Modal ──────────────────────────────────────────────
+.qr-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.15s ease;
+}
+
+.qr-modal {
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: 16px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 220px;
+}
+
+.qr-modal-header { text-align: center; }
+
+.qr-modal-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.qr-modal-sub {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 3px;
+}
+
+.qr-wrapper {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--divider);
+}
+
+.qr-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.qr-cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+  background: transparent;
+
+  &.filled { background: var(--text-primary); }
+}
+
+.qr-code-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.12em;
+}
+
+// ── Animations ────────────────────────────────────────────
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.2; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

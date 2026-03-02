@@ -93,3 +93,26 @@ body {
     background: var(--bg);
     transition: background 0.25s ease;
 }
+
+
+
+
+// ── Divider ───────────────────────────────────────────────
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+
+  &__line {
+    flex: 1;
+    height: 1px;
+    background: var(--divider);
+  }
+
+  &__label {
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
