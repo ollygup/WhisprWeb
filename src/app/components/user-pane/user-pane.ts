@@ -103,6 +103,7 @@ export class UserPane implements OnInit, OnDestroy {
       const isConnected = this.connected();
       const groupId = this.pendingGroupId();
       if (isConnected && groupId !== null) {
+        this.peerInput.set(groupId);
         this.connectToPeer();
       }
     })
