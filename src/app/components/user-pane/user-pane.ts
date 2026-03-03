@@ -33,6 +33,8 @@ const MAX_HISTORY = 20;
 export class UserPane implements OnInit, OnDestroy {
   // if join from QR
   pendingGroupId = input<string | null>(null);
+  private _pendingGroupId = signal<string | null>(null);
+
 
   private sub = new Subscription();
   private statsTimer?: ReturnType<typeof setInterval>;
@@ -89,14 +91,18 @@ export class UserPane implements OnInit, OnDestroy {
     });
 
     effect(() => {
-      const groupId = this.pendingGroupId();
-      const peerInput = this.peerInput();
-      if (peerInput == '' && groupId != null) {
-        this.peerInput.set(groupId); // tracked automatically
-        this.connect();
-      } else if (peerInput != '' && groupId != null) {
+      const groupId = this._pendingGroupId();
+      if (!groupId) return;
+
+      if (this.connected()) {
         this.swalService.showError("You are already in a group, leave to join a new one");
+      } else {
+        this.peerInput.set(groupId);
+        this.connect();
       }
+
+      // Clear local copy to prevent re-trigger
+      this._pendingGroupId.set(null);
     });
 
     effect(() => {
