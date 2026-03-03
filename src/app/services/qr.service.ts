@@ -43,7 +43,7 @@ const QR_THEMES: Record<'dark' | 'light', Partial<Options>> = {
 };
 @Injectable({ providedIn: 'root' })
 export class QRService {
-    private hubUrl = environment.hubUrl;
+    private appUrl = window.location.origin;
     private doc = inject(DOCUMENT);
     private observer!: MutationObserver;
 
@@ -78,7 +78,7 @@ export class QRService {
     }
 
     updateData(groupId: string) {
-        this.data.set(`${this.hubUrl}?join=${groupId}`);
+        this.data.set(`${this.appUrl}?join=${groupId}`);
     }
 
     ngOnDestroy() {
