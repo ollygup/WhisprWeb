@@ -183,19 +183,17 @@
 <!-- ══ QR Modal ═══════════════════════════════════════════ -->
 <div class="qr-backdrop" *ngIf="showQR()" (click)="closeQR()">
   <div class="qr-modal" (click)="$event.stopPropagation()">
+
     <div class="qr-modal-header">
       <div class="qr-modal-title">Scan to Connect</div>
       <div class="qr-modal-sub">Share this QR with your peer</div>
     </div>
-    <div class="qr-wrapper">
-      <div class="qr-grid" [style.grid-template-columns]="'repeat(' + QR_CELLS + ', 10px)'">
-        <div class="qr-cell"
-             *ngFor="let cell of flatQR(); trackBy: trackByIndex"
-             [class.filled]="cell === 1">
-        </div>
-      </div>
-    </div>
+
+    <ngx-qrcode-styling [config]="qrService.config()">
+    </ngx-qrcode-styling>
+    
     <div class="qr-code-display">{{ userCode() }}</div>
     <button class="action-btn" (click)="closeQR()">Close</button>
+
   </div>
 </div>

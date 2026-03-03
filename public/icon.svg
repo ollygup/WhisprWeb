@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- Background -->
-  <rect width="32" height="32" rx="8" fill="#07090d"/>
+
+  <!-- Matches extra-rounded corner style of QR -->
+  <rect width="32" height="32" rx="10" ry="10" fill="#07090d"/>
 
   <!-- Left node -->
   <circle cx="6" cy="16" r="3.5" fill="#00d4ff"/>

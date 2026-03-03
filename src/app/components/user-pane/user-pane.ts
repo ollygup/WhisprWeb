@@ -1,10 +1,13 @@
-import { Component, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, signal, computed, OnInit, OnDestroy, effect, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { SignalRService } from '../../services/signalr.service';
 import { WebrtcService } from '../../services/webrtc.service';
 import { UserInfo } from '../../models/common.model';
+import { SwalService } from '../../services/swal.service';
+import { QRService } from '../../services/qr.service';
+import { NgxQrcodeStylingComponent } from 'ngx-qrcode-styling';
 
 export interface SideStats {
   latency: number;
@@ -23,11 +26,13 @@ const MAX_HISTORY = 20;
 @Component({
   selector: 'app-user-pane',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgxQrcodeStylingComponent],
   templateUrl: './user-pane.html',
   styleUrl: './user-pane.scss'
 })
 export class UserPane implements OnInit, OnDestroy {
+  // if join from QR
+  pendingGroupId = input<string | null>(null);
 
   private sub = new Subscription();
   private statsTimer?: ReturnType<typeof setInterval>;
@@ -61,7 +66,9 @@ export class UserPane implements OnInit, OnDestroy {
 
   constructor(
     private signalRService: SignalRService,
-    private webrtcService: WebrtcService
+    private webrtcService: WebrtcService,
+    private swalService: SwalService,
+    protected qrService: QRService
   ) {
     // When peerSession is full extract the remote peer's userCode
     effect(() => {
@@ -82,6 +89,26 @@ export class UserPane implements OnInit, OnDestroy {
         this.peerInput.set('');
       }
     });
+
+    effect(() => {
+      const groupId = this.pendingGroupId();
+      const peerInput = this.peerInput();
+      if(peerInput == '' && groupId != null){
+        this.peerInput.set(groupId); // tracked automatically
+        this.connect();
+      }else if(peerInput != '' && groupId != null){
+        this.swalService.showError("You are already in a group, leave to join a new one");
+      }
+    });
+
+    effect(() => {
+      const isConnected = this.connected();
+      const groupId = this.pendingGroupId();
+      if (isConnected && groupId !== null) {
+        this.connectToPeer();
+      }
+    })
+
   }
 
   ngOnInit() {
@@ -90,6 +117,7 @@ export class UserPane implements OnInit, OnDestroy {
         this.userCode.set(code);
         this.connected.set(true);
         this.connecting.set(false);
+        this.qrService.updateData(code);
       })
     );
 
