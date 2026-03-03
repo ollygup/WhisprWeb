@@ -193,7 +193,7 @@
     </ngx-qrcode-styling>
 
     <div class="qr-code-display">{{ userCode() }}</div>
-    <div style="align-content: space-between;">
+    <div style="display: flex; justify-content: space-between; width: 100%;">
       <button class="action-btn" (click)="closeQR()">Close</button>
       <button *ngIf="qrService.isMobile" class="action-btn" (click)="shareQR()">Share</button>
       <button class="action-btn" (click)="downloadQR()">Download</button>
