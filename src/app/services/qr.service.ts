@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Options } from 'ngx-qrcode-styling';
+import { NgxQrcodeStylingComponent, Options } from 'ngx-qrcode-styling';
 import { environment } from '../../environments/environment';
 
 const QR_THEMES: Record<'dark' | 'light', Partial<Options>> = {
@@ -49,6 +49,7 @@ export class QRService {
 
     private theme = signal<'dark' | 'light'>(this.readTheme());
     private data = signal<string>('');
+    readonly isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
 
     config = computed<Options>(() => ({
         width: 256,
@@ -88,5 +89,27 @@ export class QRService {
         return this.doc.documentElement.getAttribute('data-theme') === 'light'
             ? 'light'
             : 'dark';
+    }
+
+    download(qrComponent: NgxQrcodeStylingComponent) {
+        qrComponent.download('whispr-qr').subscribe();
+    }
+
+    // ── Mobile: native
+    async share(qrComponent: NgxQrcodeStylingComponent) {
+        const blob = await this.toBlob(qrComponent);
+        if (!blob) return;
+        const file = new File([blob], 'whispr-qr.png', { type: 'image/png' });
+        await navigator.share({ title: 'Join me on Whispr', files: [file] });
+    }
+
+    private toBlob(qrComponent: NgxQrcodeStylingComponent): Promise<Blob | null> {
+        return new Promise(resolve => {
+            qrComponent.download('whispr-qr')
+                .subscribe({
+                    next: () => resolve(null),  // download() doesn't expose blob
+                    error: () => resolve(null)
+                });
+        });
     }
 }

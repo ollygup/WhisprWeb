@@ -189,11 +189,15 @@
       <div class="qr-modal-sub">Share this QR with your peer</div>
     </div>
 
-    <ngx-qrcode-styling [config]="qrService.config()">
+    <ngx-qrcode-styling #qrCode [config]="qrService.config()">
     </ngx-qrcode-styling>
-    
+
     <div class="qr-code-display">{{ userCode() }}</div>
-    <button class="action-btn" (click)="closeQR()">Close</button>
+    <div style="align-content: space-between;">
+      <button *ngIf="qrService.isMobile" class="action-btn" (click)="shareQR()">Share</button>
+      <button class="action-btn" (click)="downloadQR()">Download</button>
+    </div>
+
 
   </div>
 </div>

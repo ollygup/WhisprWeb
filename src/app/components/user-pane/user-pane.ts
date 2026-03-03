@@ -1,4 +1,4 @@
-import { Component, signal, computed, OnInit, OnDestroy, effect, input } from '@angular/core';
+import { Component, signal, computed, OnInit, OnDestroy, effect, input, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -58,11 +58,9 @@ export class UserPane implements OnInit, OnDestroy {
   localLossHistory = signal<number[]>([]);
 
   // ── QR ────────────────────────────────────────────────────
-  readonly QR_CELLS = 11;
-  qrGrid = computed(() => this.generateQR(this.userCode()));
-  flatQR = computed(() => this.qrGrid().flat());
-
   peerCode = computed(() => this.peerUserCode());
+
+  @ViewChild('qrCode') qrCode!: NgxQrcodeStylingComponent;
 
   constructor(
     private signalRService: SignalRService,
@@ -93,10 +91,10 @@ export class UserPane implements OnInit, OnDestroy {
     effect(() => {
       const groupId = this.pendingGroupId();
       const peerInput = this.peerInput();
-      if(peerInput == '' && groupId != null){
+      if (peerInput == '' && groupId != null) {
         this.peerInput.set(groupId); // tracked automatically
         this.connect();
-      }else if(peerInput != '' && groupId != null){
+      } else if (peerInput != '' && groupId != null) {
         this.swalService.showError("You are already in a group, leave to join a new one");
       }
     });
@@ -326,19 +324,7 @@ export class UserPane implements OnInit, OnDestroy {
     this.localLossHistory.update(h => [...h.slice(-MAX_HISTORY + 1), lossRaw]);
   }
 
-  // ── QR placeholder ────────────────────────────────────────
-  private generateQR(code: string | null): number[][] {
-    const size = this.QR_CELLS;
-    const grid = Array.from({ length: size }, () => Array(size).fill(0));
-    if (!code) return grid;
-    let seed = code.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    for (let r = 0; r < size; r++)
-      for (let c = 0; c < size; c++) {
-        seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-        grid[r][c] = (seed >>> 16) % 3 === 0 ? 1 : 0;
-      }
-    return grid;
-  }
-
-  trackByIndex(i: number) { return i; }
+  // QR
+  downloadQR() { this.qrService.download(this.qrCode); }
+  shareQR() { this.qrService.share(this.qrCode); }
 } 
