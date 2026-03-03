@@ -194,6 +194,7 @@
 
     <div class="qr-code-display">{{ userCode() }}</div>
     <div style="align-content: space-between;">
+      <button class="action-btn" (click)="closeQR()">Close</button>
       <button *ngIf="qrService.isMobile" class="action-btn" (click)="shareQR()">Share</button>
       <button class="action-btn" (click)="downloadQR()">Download</button>
     </div>
