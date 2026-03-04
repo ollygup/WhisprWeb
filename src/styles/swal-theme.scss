@@ -1,0 +1,111 @@
+// ── SweetAlert2 — Whispr Theme ────────────────────────────────
+
+.swal2-popup {
+  font-family: 'Sora', sans-serif !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--divider) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4) !important;
+  color: var(--text-primary) !important;
+}
+
+.swal2-title {
+  font-family: 'Sora', sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.swal2-html-container {
+  font-family: 'Sora', sans-serif !important;
+  font-size: 0.875rem !important;
+  color: var(--text-secondary) !important;
+}
+
+// ── Buttons ───────────────────────────────────────────────────
+
+.swal2-confirm {
+  font-family: 'Sora', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  background: var(--accent) !important;
+  color: var(--btn-text) !important;
+  border-radius: 8px !important;
+  border: none !important;
+  box-shadow: none !important;
+
+  &:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent) !important; }
+}
+
+.swal2-cancel {
+  font-family: 'Sora', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--divider) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+
+  &:hover { background: var(--toggle-bg) !important; color: var(--text-primary) !important; }
+  &:focus { box-shadow: none !important; }
+}
+
+.swal2-deny {
+  font-family: 'Sora', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  background: color-mix(in srgb, var(--status-err) 12%, transparent) !important;
+  color: var(--status-err) !important;
+  border: 1px solid color-mix(in srgb, var(--status-err) 28%, transparent) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+// ── Icons ─────────────────────────────────────────────────────
+
+.swal2-icon.swal2-success {
+  border-color: var(--status-ok) !important;
+
+  .swal2-success-line-tip,
+  .swal2-success-line-long          { background-color: var(--status-ok) !important; }
+  .swal2-success-ring               { border-color: color-mix(in srgb, var(--status-ok) 20%, transparent) !important; }
+
+  // These masking elements default to white — must match --surface
+  .swal2-success-fix,
+  .swal2-success-circular-line-left,
+  .swal2-success-circular-line-right { background-color: var(--surface) !important; }
+}
+
+.swal2-icon.swal2-warning {
+  border-color: var(--status-warn) !important;
+  color: var(--status-warn) !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: var(--status-err) !important;
+
+  .swal2-x-mark-line-left,
+  .swal2-x-mark-line-right { background-color: var(--status-err) !important; }
+}
+
+.swal2-icon.swal2-info {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+.swal2-icon.swal2-question {
+  border-color: var(--muted) !important;
+  color: var(--text-secondary) !important;
+}
+
+// ── Timer bar ─────────────────────────────────────────────────
+
+.swal2-timer-progress-bar { background: var(--accent) !important; }
+
+// ── Backdrop ──────────────────────────────────────────────────
+
+.swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(3px);
+}

@@ -334,4 +334,12 @@ export class UserPane implements OnInit, OnDestroy {
   // QR
   downloadQR() { this.qrService.download(this.qrCode); }
   shareQR() { this.qrService.share(this.qrCode); }
+  
+  copyURL() {
+    const userCode = this.userCode();
+    if (!userCode) return;
+    const inviteLink = `${window.location.origin}?join=${userCode}`;
+    navigator.clipboard.writeText(`Join my secure P2P session:\n${inviteLink}`);
+    this.swalService.showCornerPopupMsg('Link copied');
+  }
 } 

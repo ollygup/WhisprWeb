@@ -1,3 +1,5 @@
+@use './styles/swal-theme';
+
 @font-face {
     font-family: 'Sora';
     src: url('/assets/fonts/Sora-Regular.ttf') format('ttf');
@@ -93,8 +95,6 @@ body {
     background: var(--bg);
     transition: background 0.25s ease;
 }
-
-
 
 
 // ── Divider ───────────────────────────────────────────────
