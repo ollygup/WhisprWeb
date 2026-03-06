@@ -1,59 +1,86 @@
-# WhisprWeb
+# Whispr
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.0.
+**Peer-to-peer file transfer using WebRTC.**
 
-## Development server
+Files are transferred **directly between browsers**.  
+The backend is used **only for signaling and session coordination**.
 
-To start a local development server, run:
+No files pass through or are stored on the server.
+
+---
+
+## How It Works
+
+1. A user opens the app and enters a display name.
+
+2. The client establishes a **WebSocket connection** to the backend signaling server.
+
+3. The server creates a **session (WebSocket group)** and the frontend generates a **QR code** containing the session URL.
+
+4. A second user scans the QR code and joins the session.
+
+5. **WebRTC negotiation** begins through the signaling server.
+
+6. Once the peer connection is established, a **WebRTC DataChannel** is created.
+
+7. Users select whether they want to **send** or **receive** files.
+
+8. The receiver configures a **download directory**.
+
+9. Files are transferred in **chunks through the WebRTC DataChannel**.
+
+Transfer speed is limited by the **slowest network connection between the two peers**.
+
+---
+
+## Architecture
+
+| Component | Technology |
+|-----------|------------|
+| Frontend  | Angular |
+| Backend   | ASP.NET Core |
+| Signaling | SignalR (WebSocket) |
+| Transfer  | WebRTC DataChannel |
+
+---
+
+## Notes
+
+- The backend **only relays signaling messages** (SDP and ICE candidates).
+- **File data never passes through the server.**
+- Transfers occur **directly between peers**.
+
+
+
+
+---
+
+# DEVELOPMENT
+## Run
+
+Install dependencies and start dev server:
 
 ```bash
-ng serve
+npm install
+npx ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Development uses the default local backend URL; no environment variable is needed.
 
-## Code scaffolding
+---
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Production
+
+Create a `.env` file in the project root (or configure via your hosting provider) with the production backend URL:
+
+```env
+NG_APP_HUB_URL=https://your-production-server/hub
+```
+
+Then build the app:
 
 ```bash
-ng generate component component-name
+npm run build --production
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The frontend will use the value from the `.env` file to connect to the production backend.
