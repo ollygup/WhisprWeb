@@ -33,23 +33,3 @@ self.addEventListener('message', event => {
   done ? (controller.close(), map.delete(id))
        : controller.enqueue(new Uint8Array(chunk));
 });
-
-// How it works
-// 1. a.click()
-//    → browser makes a fetch request to /sw-download/abc-123
-//    → SW intercepts it, creates a ReadableStream
-//    → stores its controller in map under "abc-123"
-//    → returns Response(stream) → browser opens Save dialog
-//    → stream is now OPEN and WAITING
-
-// 2. chunks arrive over WebRTC
-//    → postMessage({ id: "abc-123", chunk, done: false })
-//    → SW message listener: map.get("abc-123") → controller
-//    → controller.enqueue(new Uint8Array(chunk))
-//    → bytes flow into the browser's download
-
-// 3. sender sends transfer-complete
-//    → finaliseDownload() calls postMessage({ done: true })
-//    → controller.close()
-//    → browser sees stream end → file download completes
-//    → map.delete("abc-123") → cleanup
