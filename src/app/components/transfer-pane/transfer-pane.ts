@@ -1,9 +1,11 @@
-import { Component, signal, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, effect, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { WebrtcService } from '../../services/webrtc.service';
+import { environment } from '../../../environments/environment';
 import { FileOfferDto, PeerSession, TransferStatus } from '../../models/common.model';
 import { SignalRService } from '../../services/signalr.service';
+import { SwalService } from '../../services/swal.service';
+import { WebrtcService } from '../../services/webrtc.service';
 
 type DataMessage = { type: 'transfer-complete' };
 
@@ -21,9 +23,10 @@ export class TransferPane implements OnInit, OnDestroy {
   private peerSession: PeerSession | null = null;
   private sub = new Subscription();
   private selectedFile: File | null = null;
-  private receiverDirHandle: FileSystemDirectoryHandle | null = null;
-  private receivedChunks: ArrayBuffer[] = [];
-  private expectedChunks = 0;
+
+  // ── Stream bridge state ───────────────────────────────────
+  private downloadId: string | null = null;
+  private bytesReceived = 0;
 
   // ── Peer connected gate ───────────────────────────────────
   peerConnected = signal(false);
@@ -41,62 +44,55 @@ export class TransferPane implements OnInit, OnDestroy {
   incomingFileOffer = signal<FileOfferDto | null>(null);
   receiveStatus     = signal<TransferStatus>('idle');
   receiveProgress   = signal(0);
-  saveDirSelected   = signal(false);
 
   constructor(
     private webrtcService: WebrtcService,
-    private signalRService: SignalRService
+    private signalRService: SignalRService,
+    private swalService: SwalService
   ) {
     // Track peer session
     effect(() => {
       this.peerSession = this.signalRService.peerSession();
       this.peerConnected.set(this.peerSession?.isFull ?? false);
 
-      // Peer left — reset everything
       if (!this.peerSession) {
         this.resetSend();
         this.resetReceive();
       }
     });
 
-    // Incoming file offer from peer (via SignalR)
+    // Incoming file offer from peer — show Swal prompt immediately
     effect(() => {
       const offer = this.signalRService.fileOffer();
       if (!offer) return;
       this.incomingFileOffer.set(offer);
-      this.expectedChunks = offer.totalChunks;
-      this.receivedChunks = [];
       this.receiveStatus.set('connected');
-      this.saveDirSelected.set(false);
+      this.promptFileOffer(offer);
     });
 
-    // Peer responded to our file offer
+    // Peer responded to our file offer — auto-trigger send if accepted
     effect(() => {
       const response = this.signalRService.fileOfferResponse();
-      if (response === null) return; // no response yet
+      if (response === null) return;
 
       if (response === true) {
         this.peerReady.set(true);
         this.peerRejected.set(false);
+        this.startSend(); // auto-trigger — no manual Send click needed
       } else {
-        // Peer rejected — reset send state
         this.peerRejected.set(true);
         this.peerReady.set(false);
         this.sendStatus.set('idle');
-        this.fileName.set(null);
-        this.fileSize.set(null);
-        this.selectedFile = null;
+        // keep fileName/fileSize visible so sender can try again
       }
     });
   }
 
   ngOnInit() {
-    // Data channel — only raw file chunks come through here
     this.sub.add(
       this.webrtcService.data$.subscribe(data => this.handleIncoming(data))
     );
 
-    // Peer disconnected mid-transfer
     this.sub.add(
       this.signalRService.onPeerDisconnected$.subscribe(() => {
         this.resetSend();
@@ -110,25 +106,80 @@ export class TransferPane implements OnInit, OnDestroy {
     this.sub.unsubscribe();
   }
 
-  // ── Incoming data (data channel only — raw chunks + transfer-complete) ──
+  // ── Receiver: Swal prompt ─────────────────────────────────
+  private async promptFileOffer(offer: FileOfferDto): Promise<void> {
+    const result = await this.swalService.showFileOfferPrompt(
+      offer.name,
+      this.formatBytes(offer.size)
+    );
+
+    if (result.isConfirmed) {
+      this.acceptOffer(offer);
+    } else {
+      this.dismissOffer();
+    }
+  }
+
+  // ── Receiver: accept — open SW stream + notify sender ─────
+  private acceptOffer(offer: FileOfferDto): void {
+    this.downloadId = crypto.randomUUID();
+
+    const name = encodeURIComponent(offer.name);
+    const a = document.createElement('a');
+    a.href = `${environment.swInterceptPath}${this.downloadId}?name=${name}&size=${offer.size}`;
+    a.click();
+
+    this.receiveStatus.set('active');
+
+    const targetId = this.getRemoteConnectionId();
+    if (targetId) this.signalRService.sendFileOfferResponse(targetId, true);
+  }
+
+  // ── Receiver: decline — notify sender ─────────────────────
+  dismissOffer(): void {
+    const targetId = this.getRemoteConnectionId();
+    if (targetId) this.signalRService.sendFileOfferResponse(targetId, false);
+    this.resetReceive();
+  }
+
+  // ── Incoming data — pipe chunks straight to SW ────────────
   private handleIncoming(data: ArrayBuffer | string): void {
     if (typeof data === 'string') {
       try {
         const msg = JSON.parse(data) as DataMessage;
-        if (msg.type === 'transfer-complete') this.assembleAndSave();
+        if (msg.type === 'transfer-complete') this.finaliseDownload();
       } catch { console.error('[Transfer] Failed to parse message'); }
       return;
     }
 
-    // Binary chunk
-    if (this.receiveStatus() === 'active') {
-      this.receivedChunks.push(data);
-      const progress = Math.round((this.receivedChunks.length / this.expectedChunks) * 100);
-      this.receiveProgress.set(progress);
+    if (this.receiveStatus() !== 'active' || !this.downloadId) return;
+
+    navigator.serviceWorker.controller?.postMessage(
+      { id: this.downloadId, chunk: data, done: false },
+      [data]
+    );
+
+    this.bytesReceived += data.byteLength;
+    const offer = this.incomingFileOffer();
+    if (offer) {
+      this.receiveProgress.set(Math.min(
+        Math.round((this.bytesReceived / offer.size) * 100), 99
+      ));
     }
   }
 
-  // ── Sender: file pick ─────────────────────────────────────
+  // ── Receiver: finalise — tell SW to close the stream ──────
+  private finaliseDownload(): void {
+    navigator.serviceWorker.controller?.postMessage(
+      { id: this.downloadId, done: true }
+    );
+    this.downloadId = null;
+    this.bytesReceived = 0;
+    this.receiveStatus.set('done');
+    this.receiveProgress.set(100);
+  }
+
+  // ── Sender: file pick — store only, no offer sent yet ─────
   onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -152,45 +203,51 @@ export class TransferPane implements OnInit, OnDestroy {
     this.fileSize.set(this.formatBytes(file.size));
     this.peerReady.set(false);
     this.peerRejected.set(false);
-    this.sendStatus.set('connected');
+    this.sendStatus.set('idle'); // stay idle — offer not sent until user clicks Send
+  }
 
-    // Coordinate via SignalR — peer needs to pick save directory first
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  // ── Sender: send offer — triggered by Send File button ────
+  sendOffer(): void {
+    if (!this.selectedFile) return;
+
+    const totalChunks = Math.ceil(this.selectedFile.size / CHUNK_SIZE);
     const offer: FileOfferDto = {
       type: 'file-offer',
-      name: file.name,
-      size: file.size,
-      mimeType: file.type || 'application/octet-stream',
+      name: this.selectedFile.name,
+      size: this.selectedFile.size,
+      mimeType: this.selectedFile.type || 'application/octet-stream',
       totalChunks
     };
 
     const targetId = this.getRemoteConnectionId();
     if (targetId) this.signalRService.sendFileOffer(targetId, offer);
+
+    this.sendStatus.set('connected'); // offer sent — waiting for peer response
   }
 
-  // ── Sender: send chunks via data channel ──────────────────
+  // ── Sender: send chunks — auto-called when peer accepts ───
   async startSend(): Promise<void> {
-    if (!this.selectedFile || !this.peerReady()) return;
-
+    if (!this.selectedFile) return;
+  
     this.sendStatus.set('active');
     this.sendProgress.set(0);
-    this.peerRejected.set(false);
-
+  
     const file        = this.selectedFile;
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-
+  
     for (let i = 0; i < totalChunks; i++) {
+      await this.webrtcService.waitForBufferDrain(); // event-driven, not polling
+  
       const start = i * CHUNK_SIZE;
       const end   = Math.min(start + CHUNK_SIZE, file.size);
       const chunk = await file.slice(start, end).arrayBuffer();
-
+  
       this.webrtcService.sendBuffer(chunk);
       this.sendProgress.set(Math.round(((i + 1) / totalChunks) * 100));
-
-      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
     }
-
-    // Only transfer-complete goes through data channel — it's tiny and timing-critical
+  
+    // Wait for final chunks to drain before signalling complete
+    await this.webrtcService.waitForBufferDrain();
     this.webrtcService.sendMessage(JSON.stringify({ type: 'transfer-complete' }));
     this.sendStatus.set('done');
   }
@@ -205,57 +262,12 @@ export class TransferPane implements OnInit, OnDestroy {
     this.peerRejected.set(false);
   }
 
-  // ── Receiver: pick save directory (response via SignalR) ──
-  async pickSaveDirectory(): Promise<void> {
-    try {
-      this.receiverDirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
-      this.saveDirSelected.set(true);
-      this.receiveStatus.set('active');
-
-      // Notify sender via SignalR — they can now start sending
-      const targetId = this.getRemoteConnectionId();
-      if (targetId) this.signalRService.sendFileOfferResponse(targetId, true);
-    } catch (err) {
-      console.error('[Transfer] Directory picker cancelled or failed', err);
-    }
-  }
-
-  dismissOffer() {
-    const targetId = this.getRemoteConnectionId();
-    if (targetId) this.signalRService.sendFileOfferResponse(targetId, false);
-
-    this.incomingFileOffer.set(null);
-    this.receiveStatus.set('idle');
-    this.saveDirSelected.set(false);
-  }
-
-  // ── Receiver: assemble + save ─────────────────────────────
-  private async assembleAndSave(): Promise<void> {
-    const offer = this.incomingFileOffer();
-    if (!offer || !this.receiverDirHandle) return;
-
-    try {
-      const blob       = new Blob(this.receivedChunks, { type: offer.mimeType });
-      const fileHandle = await this.receiverDirHandle.getFileHandle(offer.name, { create: true });
-      const writable   = await fileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-
-      this.receiveStatus.set('done');
-      this.receiveProgress.set(100);
-    } catch (err) {
-      this.receiveStatus.set('error');
-      console.error('[Transfer] Failed to save file', err);
-    }
-  }
-
   resetReceive() {
     this.incomingFileOffer.set(null);
     this.receiveStatus.set('idle');
     this.receiveProgress.set(0);
-    this.saveDirSelected.set(false);
-    this.receivedChunks = [];
-    this.receiverDirHandle = null;
+    this.downloadId = null;
+    this.bytesReceived = 0;
   }
 
   // ── Helpers ───────────────────────────────────────────────
