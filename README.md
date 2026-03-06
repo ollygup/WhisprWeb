@@ -49,3 +49,38 @@ Transfer speed is limited by the **slowest network connection between the two pe
 - The backend **only relays signaling messages** (SDP and ICE candidates).
 - **File data never passes through the server.**
 - Transfers occur **directly between peers**.
+
+
+
+
+---
+
+# DEVELOPMENT
+## Run
+
+Install dependencies and start dev server:
+
+```bash
+npm install
+npx ng serve
+```
+
+Development uses the default local backend URL; no environment variable is needed.
+
+---
+
+## Production
+
+Create a `.env` file in the project root (or configure via your hosting provider) with the production backend URL:
+
+```env
+NG_APP_HUB_URL=https://your-production-server/hub
+```
+
+Then build the app:
+
+```bash
+npm run build --production
+```
+
+The frontend will use the value from the `.env` file to connect to the production backend.
