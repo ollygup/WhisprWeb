@@ -62,6 +62,10 @@ export class UserPane implements OnInit, OnDestroy {
   // ── QR ────────────────────────────────────────────────────
   peerCode = computed(() => this.peerUserCode());
 
+  // ── Bandwidth ─────────────────────────────────────────────
+  private lastBytesSent = 0;
+  private lastBytesReceived = 0;
+
   @ViewChild('qrCode') qrCode!: NgxQrcodeStylingComponent;
 
   constructor(
@@ -188,6 +192,8 @@ export class UserPane implements OnInit, OnDestroy {
     this.localLatHistory.set([]);
     this.localLossHistory.set([]);
     this.rtcConnected.set(false);
+    this.lastBytesSent = 0;
+    this.lastBytesReceived = 0;
     this.stopStatsPolling();
   }
 
@@ -319,7 +325,15 @@ export class UserPane implements OnInit, OnDestroy {
 
     const latencyMs = Math.round(rtt * 1000);
     const lossRaw = packetsSent > 0 ? (packetsLost / packetsSent) * 100 : 0;
-    const bandwidthMbps = ((bytesSent + bytesReceived) * 8) / 1_000_000;
+
+    // find the bandwidth per second
+    const deltaSent = bytesSent - this.lastBytesSent;
+    const deltaReceived = bytesReceived - this.lastBytesReceived;
+    const bandwidthMbps = ((deltaSent + deltaReceived) * 8) / 1_000_000;
+
+    this.lastBytesSent = bytesSent;
+    this.lastBytesReceived = bytesReceived;
+
 
     this.localStats.set({
       latency: latencyMs,
@@ -334,7 +348,7 @@ export class UserPane implements OnInit, OnDestroy {
   // QR
   downloadQR() { this.qrService.download(this.qrCode); }
   shareQR() { this.qrService.share(this.qrCode); }
-  
+
   copyURL() {
     const userCode = this.userCode();
     if (!userCode) return;

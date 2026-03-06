@@ -32,18 +32,18 @@ export class TransferPane implements OnInit, OnDestroy {
   peerConnected = signal(false);
 
   // ── Sender state ──────────────────────────────────────────
-  sendStatus   = signal<TransferStatus>('idle');
+  sendStatus = signal<TransferStatus>('idle');
   sendProgress = signal(0);
-  fileName     = signal<string | null>(null);
-  fileSize     = signal<string | null>(null);
-  isDragging   = signal(false);
-  peerReady    = signal(false);
+  fileName = signal<string | null>(null);
+  fileSize = signal<string | null>(null);
+  isDragging = signal(false);
+  peerReady = signal(false);
   peerRejected = signal(false);
 
   // ── Receiver state ────────────────────────────────────────
   incomingFileOffer = signal<FileOfferDto | null>(null);
-  receiveStatus     = signal<TransferStatus>('idle');
-  receiveProgress   = signal(0);
+  receiveStatus = signal<TransferStatus>('idle');
+  receiveProgress = signal(0);
 
   constructor(
     private webrtcService: WebrtcService,
@@ -66,6 +66,7 @@ export class TransferPane implements OnInit, OnDestroy {
       const offer = this.signalRService.fileOffer();
       if (!offer) return;
       this.incomingFileOffer.set(offer);
+      this.bytesReceived = 0;
       this.receiveStatus.set('connected');
       this.promptFileOffer(offer);
     });
@@ -154,12 +155,13 @@ export class TransferPane implements OnInit, OnDestroy {
 
     if (this.receiveStatus() !== 'active' || !this.downloadId) return;
 
+    const chunkSize = data.byteLength;
     navigator.serviceWorker.controller?.postMessage(
       { id: this.downloadId, chunk: data, done: false },
       [data]
     );
 
-    this.bytesReceived += data.byteLength;
+    this.bytesReceived += chunkSize;
     const offer = this.incomingFileOffer();
     if (offer) {
       this.receiveProgress.set(Math.min(
@@ -187,7 +189,7 @@ export class TransferPane implements OnInit, OnDestroy {
   }
 
   onDragOver(e: DragEvent) { e.preventDefault(); this.isDragging.set(true); }
-  onDragLeave()            { this.isDragging.set(false); }
+  onDragLeave() { this.isDragging.set(false); }
 
   onDrop(e: DragEvent) {
     e.preventDefault();
@@ -228,24 +230,24 @@ export class TransferPane implements OnInit, OnDestroy {
   // ── Sender: send chunks — auto-called when peer accepts ───
   async startSend(): Promise<void> {
     if (!this.selectedFile) return;
-  
+
     this.sendStatus.set('active');
     this.sendProgress.set(0);
-  
-    const file        = this.selectedFile;
+
+    const file = this.selectedFile;
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-  
+
     for (let i = 0; i < totalChunks; i++) {
       await this.webrtcService.waitForBufferDrain(); // event-driven, not polling
-  
+
       const start = i * CHUNK_SIZE;
-      const end   = Math.min(start + CHUNK_SIZE, file.size);
+      const end = Math.min(start + CHUNK_SIZE, file.size);
       const chunk = await file.slice(start, end).arrayBuffer();
-  
+
       this.webrtcService.sendBuffer(chunk);
       this.sendProgress.set(Math.round(((i + 1) / totalChunks) * 100));
     }
-  
+
     // Wait for final chunks to drain before signalling complete
     await this.webrtcService.waitForBufferDrain();
     this.webrtcService.sendMessage(JSON.stringify({ type: 'transfer-complete' }));
@@ -276,7 +278,7 @@ export class TransferPane implements OnInit, OnDestroy {
   }
 
   formatBytes(b: number): string {
-    if (b < 1024)      return `${b} B`;
+    if (b < 1024) return `${b} B`;
     if (b < 1024 ** 2) return `${(b / 1024).toFixed(1)} KB`;
     if (b < 1024 ** 3) return `${(b / 1024 ** 2).toFixed(1)} MB`;
     return `${(b / 1024 ** 3).toFixed(2)} GB`;

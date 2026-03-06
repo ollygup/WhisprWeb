@@ -4,11 +4,10 @@
   <div class="section">
     <div class="section__head">
       <div class="section__title">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13" />
+          <polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>
         Send
       </div>
@@ -20,45 +19,37 @@
 
     <!-- Peer not connected yet -->
     <div class="notice notice--info" *ngIf="!peerConnected()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
       Connect to a peer before sending a file.
     </div>
 
     <!-- Drop zone -->
-    <label
-      class="dropzone"
-      [class.dragging]="isDragging()"
-      [class.has-file]="!!fileName()"
-      [class.dropzone--disabled]="!peerConnected()"
-      (dragover)="peerConnected() && onDragOver($event)"
-      (dragleave)="onDragLeave()"
-      (drop)="peerConnected() && onDrop($event)">
+    <label class="dropzone" [class.dragging]="isDragging()" [class.has-file]="!!fileName()"
+      [class.dropzone--disabled]="!peerConnected()" (dragover)="peerConnected() && onDragOver($event)"
+      (dragleave)="onDragLeave()" (drop)="peerConnected() && onDrop($event)">
       <input type="file" (change)="onFileSelected($event)" [disabled]="!peerConnected()" hidden />
 
       <ng-container *ngIf="!fileName(); else fileInfo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="1.5"
-             stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
         <span class="dropzone__hint">Drop file or <em>browse</em></span>
       </ng-container>
 
       <ng-template #fileInfo>
         <div class="file-chip">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
           </svg>
           <div>
             <p class="file-chip__name">{{ fileName() }}</p>
@@ -70,44 +61,42 @@
 
     <!-- Peer declined -->
     <div class="notice notice--err" *ngIf="peerRejected()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="15" y1="9" x2="9" y2="15"/>
-        <line x1="9" y1="9" x2="15" y2="15"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
       </svg>
       Peer declined the transfer. You can send the file again.
     </div>
 
     <!-- Offer sent — waiting for peer to accept -->
-    <div class="notice notice--waiting"
-         *ngIf="sendStatus() === 'connected'">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
+    <div class="notice notice--waiting" *ngIf="sendStatus() === 'connected'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
       </svg>
       Waiting for peer to accept…
     </div>
 
     <!-- Progress -->
-    <div class="progress-wrap"
-         *ngIf="sendStatus() === 'active' || sendStatus() === 'done'">
-      <div class="progress-bar">
-        <div class="progress-bar__fill" [style.width.%]="sendProgress()"></div>
+    <div class="progress-wrap" *ngIf="sendStatus() === 'active' || sendStatus() === 'done'">
+      <div class="progress-track">
+        <div class="progress-track__fill"
+             [style.width.%]="sendProgress()"
+             [class.progress-track__fill--done]="sendStatus() === 'done'">
+        </div>
       </div>
       <div class="progress-meta">
-        <span>{{ sendProgress() }}%</span>
-        <span *ngIf="sendStatus() === 'done'" class="done-tag">✓ Sent</span>
+        <span class="progress-pct">{{ sendProgress() }}%</span>
+        <span class="progress-label" *ngIf="sendStatus() === 'active'">Sending…</span>
+        <span class="progress-label progress-label--done" *ngIf="sendStatus() === 'done'">✓ Sent</span>
       </div>
     </div>
 
     <!-- Action button -->
-    <button
-      class="btn"
-      [class.btn--ghost]="sendStatus() === 'done'"
+    <button class="btn" [class.btn--ghost]="sendStatus() === 'done'"
       [disabled]="!fileName() || sendStatus() === 'connected' || sendStatus() === 'active'"
       (click)="sendStatus() === 'done' ? resetSend() : sendOffer()">
       {{ sendStatus() === 'done' ? 'Send another' : 'Send file' }}
@@ -118,12 +107,11 @@
   <div class="section" *ngIf="incomingFileOffer() && receiveStatus() !== 'idle'">
     <div class="section__head">
       <div class="section__title">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
         Receive
       </div>
@@ -135,11 +123,10 @@
 
     <!-- File info -->
     <div class="file-chip file-chip--incoming">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
       </svg>
       <div>
         <p class="file-chip__name">{{ incomingFileOffer()!.name }}</p>
@@ -149,23 +136,26 @@
 
     <!-- Accepted — waiting for sender to begin -->
     <div class="notice notice--ok" *ngIf="receiveStatus() === 'connected'">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="20 6 9 17 4 12"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12" />
       </svg>
       Accepted — waiting for transfer to begin
     </div>
 
-    <!-- Progress -->
-    <div class="progress-wrap"
-         *ngIf="receiveStatus() === 'active' || receiveStatus() === 'done'">
-      <div class="progress-bar">
-        <div class="progress-bar__fill" [style.width.%]="receiveProgress()"></div>
+    <!-- Progress Bar -->
+    <!-- Sender and Receiver's -->
+    <div class="progress-wrap" *ngIf="receiveStatus() === 'active' || receiveStatus() === 'done'">
+      <div class="progress-track">
+        <div class="progress-track__fill"
+             [style.width.%]="receiveProgress()"
+             [class.progress-track__fill--done]="receiveStatus() === 'done'">
+        </div>
       </div>
       <div class="progress-meta">
-        <span>{{ receiveProgress() }}%</span>
-        <span *ngIf="receiveStatus() === 'done'" class="done-tag">✓ Saved to Downloads</span>
+        <span class="progress-pct">{{ receiveProgress() }}%</span>
+        <span class="progress-label" *ngIf="receiveStatus() === 'active'">Receiving…</span>
+        <span class="progress-label progress-label--done" *ngIf="receiveStatus() === 'done'">✓ Saved</span>
       </div>
     </div>
 
@@ -174,9 +164,8 @@
       Transfer failed. Please try again.
     </div>
 
-    <button class="btn btn--ghost"
-            *ngIf="receiveStatus() === 'done' || receiveStatus() === 'error'"
-            (click)="resetReceive()">
+    <button class="btn btn--ghost" *ngIf="receiveStatus() === 'done' || receiveStatus() === 'error'"
+      (click)="resetReceive()">
       Done
     </button>
   </div>
