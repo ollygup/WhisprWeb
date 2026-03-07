@@ -78,23 +78,6 @@ export class TransferPane implements OnInit, OnDestroy {
       this.receiveStatus.set('connected');
       this.promptFileOffer(offer);
     });
-
-    // Peer responded to our file offer — auto-trigger send if accepted
-    effect(() => {
-      const response = this.signalRService.fileOfferResponse();
-      if (response === null) return;
-
-      if (response === true) {
-        this.peerReady.set(true);
-        this.peerRejected.set(false);
-        this.startSend(); // auto-trigger — no manual Send click needed
-      } else {
-        this.peerRejected.set(true);
-        this.peerReady.set(false);
-        this.sendStatus.set('idle');
-        // keep fileName/fileSize visible so sender can try again
-      }
-    });
   }
 
   ngOnInit() {
@@ -102,6 +85,7 @@ export class TransferPane implements OnInit, OnDestroy {
       this.webrtcService.data$.subscribe(data => this.handleIncoming(data))
     );
 
+    // Peer disconnected
     this.sub.add(
       this.signalRService.onPeerDisconnected$.subscribe(() => {
         // Tell SW to close any open stream for this session
@@ -117,9 +101,26 @@ export class TransferPane implements OnInit, OnDestroy {
       })
     );
 
-    this.signalRService.cancelTransfer$.subscribe((reason) => {
-      this.cancelledByPeer(reason);
-    });
+    // Peer response to the file offer
+    this.sub.add(
+      this.signalRService.fileOfferResponse$.subscribe((response) => {
+        if (response === true) {
+          this.peerReady.set(true);
+          this.peerRejected.set(false);
+          this.startSend();
+        } else {
+          this.peerRejected.set(true);
+          this.peerReady.set(false);
+          this.sendStatus.set('idle');
+        }
+      })
+    );
+
+    this.sub.add(
+      this.signalRService.cancelTransfer$.subscribe((reason) => {
+        this.cancelledByPeer(reason);
+      })
+    );
 
     // Wait for SW to confirm stream is open before notifying sender
     navigator.serviceWorker.addEventListener('message', (event) => {

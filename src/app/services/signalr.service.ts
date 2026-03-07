@@ -18,14 +18,14 @@ export class SignalRService {
   private _userCode$ = new Subject<string>();
   private _peerSession = signal<PeerSession | null>(null);
   private _fileOffer = signal<FileOfferDto | null>(null);
-  private _fileOfferResponse = signal<boolean | null>(null); // null = no response yet
+  private _fileOfferResponse = new Subject<boolean>();
   private _peerDisconnected$ = new Subject<void>();
   private _cancelTransfer$ = new Subject<CancelReason>();
 
   public onReceiveCode$ = this._userCode$.asObservable();
   public peerSession = this._peerSession.asReadonly();
   public fileOffer = this._fileOffer.asReadonly();
-  public fileOfferResponse = this._fileOfferResponse.asReadonly();
+  public fileOfferResponse$ = this._fileOfferResponse.asObservable();
   public onPeerDisconnected$ = this._peerDisconnected$.asObservable();
   public cancelTransfer$ = this._cancelTransfer$.asObservable();
 
@@ -91,7 +91,6 @@ export class SignalRService {
       console.log('[SignalR] PeerLeft');
       this._peerSession.set(null);
       this._fileOffer.set(null);
-      this._fileOfferResponse.set(null);
       this._peerDisconnected$.next();
     });
 
@@ -111,12 +110,11 @@ export class SignalRService {
     this.connection.on('ReceiveFileOffer', (offer: FileOfferDto) => {
       console.log('[SignalR] ReceiveFileOffer:', offer);
       this._fileOffer.set(offer);
-      this._fileOfferResponse.set(null); // reset response for new offer
     });
 
     this.connection.on('ReceiveFileOfferResponse', (isAccepted: boolean) => {
       console.log('[SignalR] ReceiveFileOfferResponse:', isAccepted);
-      this._fileOfferResponse.set(isAccepted);
+      this._fileOfferResponse.next(isAccepted);
     });
 
     this.connection.on('ReceiveCancelFileTransfer', (reason: CancelReason) => {
@@ -136,7 +134,6 @@ export class SignalRService {
       this._connectionState.set(HubConnectionState.Disconnected);
       this._peerSession.set(null);
       this._fileOffer.set(null);
-      this._fileOfferResponse.set(null);
     });
   }
 
@@ -149,10 +146,8 @@ export class SignalRService {
   public leaveGroup(): void {
     this.assertConnected();
     this.connection!.invoke('LeaveGroup');
-    // Clear local state immediately
     this._peerSession.set(null);
     this._fileOffer.set(null);
-    this._fileOfferResponse.set(null);
   }
 
   async sendWebRtcOffer(targetConnectionId: string, sdp: RTCSessionDescriptionInit): Promise<void> {
