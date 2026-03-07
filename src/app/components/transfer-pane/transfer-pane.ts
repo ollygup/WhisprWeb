@@ -266,6 +266,11 @@ export class TransferPane implements OnInit, OnDestroy {
       totalChunks
     };
 
+    // reset statuses
+    this.peerRejected.set(false);
+    this.sendStatus.set('idle');
+    this.sendProgress.set(0);
+
     const targetId = this.getRemoteConnectionId();
     if (targetId) this.signalRService.sendFileOffer(targetId, offer);
 
