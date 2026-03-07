@@ -84,3 +84,24 @@ npm run build --production
 ```
 
 The frontend will use the value from the `.env` file to connect to the production backend.
+
+## Security Headers (`vercel.json`)
+
+> **Note:** Security headers are configured at the server/hosting level and are platform-specific. The current setup uses `vercel.json` for Vercel. If migrating to a different host, recreate these headers in the appropriate config file.
+> 
+> | Platform | Config Location |
+> |---|---|
+> | Vercel | `vercel.json` |
+> | Netlify | `netlify.toml` or `_headers` |
+> | IIS | `web.config` |
+> | Nginx | `nginx.conf` |
+> | Apache | `.htaccess` |
+> | ASP.NET | `Program.cs` middleware |
+> | Local dev | `angular.json` → `serve.options.headers` |
+
+| Header | Value | Purpose | Details |
+|---|---|---|---|
+| Content-Security-Policy | see `vercel.json` | Prevents XSS | Whitelists approved sources for scripts, styles, fonts and connections. Blocks anything not explicitly allowed. |
+| X-Content-Type-Options | nosniff | Prevents MIME sniffing | Forces browser to trust the declared Content-Type header. Stops browser from guessing file types and potentially executing malicious code disguised as another file type. |
+| Referrer-Policy | strict-origin-when-cross-origin | Protects user privacy | When a user navigates away from Whispr, only the domain is sent to the destination — never the full URL or any query parameters. |
+| X-Frame-Options | DENY | Prevents clickjacking | Blocks other websites from embedding Whispr inside an iframe. Prevents attackers from overlaying invisible frames to trick users into unintended actions. |
