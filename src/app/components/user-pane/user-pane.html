@@ -71,10 +71,13 @@
               (input)="onPeerInput($any($event.target).value)"
               [disabled]="!connected()" />
             <button class="action-btn"
-                    [disabled]="!connected() || !peerInput()"
+                    [disabled]="!connected() || !peerInput() || isSelfConnect()"
                     (click)="connectToPeer()">
               Connect
             </button>
+            <p class="error-msg" *ngIf="isSelfConnect()" style="text-align:center;">
+              That's you 💀
+            </p>      
           </div>
         </ng-template>
       </div>

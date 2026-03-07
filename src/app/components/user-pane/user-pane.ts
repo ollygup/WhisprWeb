@@ -43,6 +43,7 @@ export class UserPane implements OnInit, OnDestroy {
   userCode = signal<string | null>(null);
   copied = signal(false);
   showQR = signal(false);
+  isSelfConnect = signal(false);
 
   // ── Peer ─────────────────────────────────────────────────
   peerInput = signal('');
@@ -224,7 +225,10 @@ export class UserPane implements OnInit, OnDestroy {
     this.peerInput.set('');
   }
 
-  onPeerInput(val: string) { this.peerInput.set(val.toUpperCase()); }
+  onPeerInput(val: string) { 
+    this.peerInput.set(val.toUpperCase()); 
+    this.peerInput() == this.userCode() ? this.isSelfConnect.set(true) : this.isSelfConnect.set(false);
+  }
 
   // ── Status ────────────────────────────────────────────────
   statusLabel(): string {
