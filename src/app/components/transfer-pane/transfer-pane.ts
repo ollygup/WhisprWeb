@@ -329,14 +329,13 @@ export class TransferPane implements OnInit, OnDestroy {
   }
   
   cancelReceive(): void {
-    // Tell SW to abort the stream
     if (this.downloadId) {
       navigator.serviceWorker.controller?.postMessage({ id: this.downloadId, cancel: true });
       this.downloadId = null;
     }
     const remoteConnectionId = this.getRemoteConnectionId();
     if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, 'user-cancelled');
-    this.receiveStatus.set('cancelled');
+    this.receiveStatus.set('self-cancelled');
   }
 
   private cancelledByPeer(reason: CancelReason): void {
