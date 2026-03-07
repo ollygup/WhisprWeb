@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, effect, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { FileOfferDto, PeerSession, TransferStatus } from '../../models/common.model';
+import { CancelReason, FileOfferDto, PeerSession, TransferStatus } from '../../models/common.model';
 import { SignalRService } from '../../services/signalr.service';
 import { SwalService } from '../../services/swal.service';
 import { WebrtcService } from '../../services/webrtc.service';
+import { transferStatusLabel } from '../../models/common.model';
 
 type DataMessage = { type: 'transfer-complete' };
 
@@ -19,6 +20,8 @@ const CHUNK_SIZE = 64 * 1024; // 64KB
   styleUrl: './transfer-pane.scss'
 })
 export class TransferPane implements OnInit, OnDestroy {
+
+  protected readonly statusLabel = transferStatusLabel;
 
   private peerSession: PeerSession | null = null;
   private sub = new Subscription();
@@ -44,6 +47,11 @@ export class TransferPane implements OnInit, OnDestroy {
   incomingFileOffer = signal<FileOfferDto | null>(null);
   receiveStatus = signal<TransferStatus>('idle');
   receiveProgress = signal(0);
+  offerCancelledByPeer = false;
+
+  // ── Receiver's download popup ────────────────────────────────────────
+  private swalRef: any = null;
+
 
   constructor(
     private webrtcService: WebrtcService,
@@ -96,11 +104,41 @@ export class TransferPane implements OnInit, OnDestroy {
 
     this.sub.add(
       this.signalRService.onPeerDisconnected$.subscribe(() => {
+        // Tell SW to close any open stream for this session
+        if (this.downloadId) {
+          navigator.serviceWorker.controller?.postMessage({ 
+            id: this.downloadId, 
+            done: true    // triggers controller.close() in SW
+          });
+        }
         this.resetSend();
         this.resetReceive();
         this.peerConnected.set(false);
       })
     );
+
+    this.signalRService.cancelTransfer$.subscribe((reason) => {
+      this.cancelledByPeer(reason);
+    });
+
+    // Wait for SW to confirm stream is open before notifying sender
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      // transfer-cancelled: user clicked ✕ on the browser download bar
+      if (event.data?.type === 'transfer-cancelled' && event.data?.id === this.downloadId) {
+        this.downloadId = null;
+        this.resetReceive();
+        const remoteConnectionId = this.getRemoteConnectionId();
+        if(remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, "user-cancelled");
+      }
+    
+      // transfer-failed: enqueue threw — stream was in bad state
+      if (event.data?.type === 'transfer-failed' && event.data?.id === this.downloadId) {
+        this.downloadId = null;
+        this.receiveStatus.set('error');
+        const remoteConnectionId = this.getRemoteConnectionId();
+        if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, "transfer-failed");
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -109,10 +147,15 @@ export class TransferPane implements OnInit, OnDestroy {
 
   // ── Receiver: Swal prompt ─────────────────────────────────
   private async promptFileOffer(offer: FileOfferDto): Promise<void> {
-    const result = await this.swalService.showFileOfferPrompt(
-      offer.name,
-      this.formatBytes(offer.size)
-    );
+    this.offerCancelledByPeer = false;
+    this.swalRef = this.swalService.showFileOfferPrompt(offer.name,this.formatBytes(offer.size));
+  
+    const result = await this.swalRef; // if this swal is closed by swalService.CloseAll(), it will return "result.isConfirmed() = false"
+    this.swalRef = null;
+    
+    // so if it is cancelled by the peer, return here to prevent calling "this.dismissOffer()", 
+    // as "this.dismissOffer()" should only be called to notify the sender if the receiver cancels it 
+    if (this.offerCancelledByPeer) return; 
 
     if (result.isConfirmed) {
       this.acceptOffer(offer);
@@ -124,14 +167,13 @@ export class TransferPane implements OnInit, OnDestroy {
   // ── Receiver: accept — open SW stream + notify sender ─────
   private acceptOffer(offer: FileOfferDto): void {
     this.downloadId = crypto.randomUUID();
-
+  
     const name = encodeURIComponent(offer.name);
     const a = document.createElement('a');
     a.href = `${environment.swInterceptPath}${this.downloadId}?name=${name}&size=${offer.size}`;
     a.click();
-
+  
     this.receiveStatus.set('active');
-
     const targetId = this.getRemoteConnectionId();
     if (targetId) this.signalRService.sendFileOfferResponse(targetId, true);
   }
@@ -183,11 +225,13 @@ export class TransferPane implements OnInit, OnDestroy {
 
   // ── Sender: file pick — store only, no offer sent yet ─────
   onFileSelected(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
     this.setFile(file);
+    input.value = '';  // reset, otherwise same file cannot be selected again
   }
-
+  
   onDragOver(e: DragEvent) { e.preventDefault(); this.isDragging.set(true); }
   onDragLeave() { this.isDragging.set(false); }
 
@@ -272,10 +316,42 @@ export class TransferPane implements OnInit, OnDestroy {
     this.bytesReceived = 0;
   }
 
-  // ── Helpers ───────────────────────────────────────────────
-  statusLabel(s: TransferStatus): string {
-    return { idle: 'Idle', connected: 'Ready', active: 'In progress', done: 'Complete', error: 'Error' }[s] ?? s;
+  cancelSend(): void {
+    const remoteConnectionId = this.getRemoteConnectionId();
+    if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, 'user-cancelled');
+    this.sendStatus.set('self-cancelled');
   }
+  
+  cancelReceive(): void {
+    // Tell SW to abort the stream
+    if (this.downloadId) {
+      navigator.serviceWorker.controller?.postMessage({ id: this.downloadId, cancel: true });
+      this.downloadId = null;
+    }
+    const remoteConnectionId = this.getRemoteConnectionId();
+    if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, 'user-cancelled');
+    this.receiveStatus.set('cancelled');
+  }
+
+  private cancelledByPeer(reason: CancelReason): void {
+    if (this.swalRef) { // if swal reference exist, it means the FileOffer popup is shown
+      this.offerCancelledByPeer = true;
+      this.swalService.closeAll();
+      this.swalRef = null;
+      this.resetReceive();
+    }
+  
+    if (this.downloadId) {
+      navigator.serviceWorker.controller?.postMessage({ id: this.downloadId, cancel: true });
+      this.downloadId = null;
+      this.receiveStatus.set(reason === 'transfer-failed' ? 'error' : 'cancelled');
+    } else {
+      this.sendStatus.set(reason === 'transfer-failed' ? 'error' : 'cancelled');
+    }
+  
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
 
   formatBytes(b: number): string {
     if (b < 1024) return `${b} B`;

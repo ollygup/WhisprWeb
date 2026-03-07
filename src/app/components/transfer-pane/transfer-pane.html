@@ -13,7 +13,7 @@
       </div>
       <div class="status-pill" [attr.data-status]="sendStatus()">
         <span class="status-dot"></span>
-        {{ statusLabel(sendStatus()) }}
+        {{ statusLabel[sendStatus()] }}
       </div>
     </div>
 
@@ -80,12 +80,45 @@
       Waiting for peer to accept…
     </div>
 
+    <!-- Peer cancelled the transfer -->
+    <div class="notice notice--err" *ngIf="sendStatus() === 'cancelled'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+      Peer cancelled the transfer.
+    </div>
+
+    <!-- Sender cancelled their own transfer -->
+    <div class="notice notice--err" *ngIf="sendStatus() === 'self-cancelled'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+      Transfer cancelled.
+    </div>
+
+    <!-- Transfer failed on receiver's end -->
+    <div class="notice notice--err" *ngIf="sendStatus() === 'error'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      Transfer failed on receiver's end.
+    </div>
+
+
     <!-- Progress -->
     <div class="progress-wrap" *ngIf="sendStatus() === 'active' || sendStatus() === 'done'">
       <div class="progress-track">
-        <div class="progress-track__fill"
-             [style.width.%]="sendProgress()"
-             [class.progress-track__fill--done]="sendStatus() === 'done'">
+        <div class="progress-track__fill" [style.width.%]="sendProgress()"
+          [class.progress-track__fill--done]="sendStatus() === 'done'">
         </div>
       </div>
       <div class="progress-meta">
@@ -100,6 +133,12 @@
       [disabled]="!fileName() || sendStatus() === 'connected' || sendStatus() === 'active'"
       (click)="sendStatus() === 'done' ? resetSend() : sendOffer()">
       {{ sendStatus() === 'done' ? 'Send another' : 'Send file' }}
+    </button>
+
+    <!-- Cancel button -->
+    <button class="btn btn--ghost" *ngIf="sendStatus() === 'active' || sendStatus() === 'connected'"
+      (click)="cancelSend()">
+      Cancel
     </button>
   </div>
 
@@ -117,7 +156,7 @@
       </div>
       <div class="status-pill" [attr.data-status]="receiveStatus()">
         <span class="status-dot"></span>
-        {{ statusLabel(receiveStatus()) }}
+        {{ statusLabel[receiveStatus()] }}
       </div>
     </div>
 
@@ -144,12 +183,10 @@
     </div>
 
     <!-- Progress Bar -->
-    <!-- Sender and Receiver's -->
     <div class="progress-wrap" *ngIf="receiveStatus() === 'active' || receiveStatus() === 'done'">
       <div class="progress-track">
-        <div class="progress-track__fill"
-             [style.width.%]="receiveProgress()"
-             [class.progress-track__fill--done]="receiveStatus() === 'done'">
+        <div class="progress-track__fill" [style.width.%]="receiveProgress()"
+          [class.progress-track__fill--done]="receiveStatus() === 'done'">
         </div>
       </div>
       <div class="progress-meta">
@@ -163,6 +200,11 @@
     <div class="notice notice--err" *ngIf="receiveStatus() === 'error'">
       Transfer failed. Please try again.
     </div>
+
+    <!-- Cancel button for receiver -->
+    <button class="btn btn--ghost" *ngIf="receiveStatus() === 'active'" (click)="cancelReceive()">
+      Cancel
+    </button>
 
     <button class="btn btn--ghost" *ngIf="receiveStatus() === 'done' || receiveStatus() === 'error'"
       (click)="resetReceive()">

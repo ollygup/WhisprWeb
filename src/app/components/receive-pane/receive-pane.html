@@ -12,7 +12,7 @@
       </div>
       <div class="status-pill" [attr.data-status]="recvStatus()">
         <span class="status-dot"></span>
-        {{ statusLabel(recvStatus()) }}
+        {{ statusLabel[recvStatus()] }}
       </div>
     </div>
 

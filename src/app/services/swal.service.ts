@@ -45,9 +45,9 @@ export class SwalService {
 
     showFileOfferPrompt(fileName: string, fileSize: string) {
         return Swal.fire({
-          theme: 'dark',
-          title: 'Incoming File',
-          html: `
+            theme: 'dark',
+            title: 'Incoming File',
+            html: `
             <div style="text-align: left; display: flex; flex-direction: column; gap: 8px;">
               <div><strong>File:</strong> ${fileName}</div>
               <div><strong>Size:</strong> ${fileSize}</div>
@@ -56,13 +56,16 @@ export class SwalService {
               </div>
             </div>
           `,
-          icon: 'info',
-          showCancelButton: true,
-          confirmButtonText: 'Accept',
-          cancelButtonText: 'Decline',
-          allowOutsideClick: false,
-          allowEscapeKey: false
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Accept',
+            cancelButtonText: 'Decline',
+            allowOutsideClick: false,
+            allowEscapeKey: false
         });
-      }
+    }
 
+    closeAll(): void {
+        Swal.close();
+    }
 }

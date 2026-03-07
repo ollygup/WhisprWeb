@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TransferStatus } from '../../models/common.model';
 import { CommonModule } from '@angular/common';
+import { transferStatusLabel } from '../../models/common.model';
 
 @Component({
   selector: 'app-receive-pane',
@@ -9,6 +10,7 @@ import { CommonModule } from '@angular/common';
   styleUrl: './receive-pane.scss',
 })
 export class ReceivePane {
+  protected readonly statusLabel = transferStatusLabel;
 
   // ── Receiver state ───────────────────────────────────────
   recvStatus    = signal<TransferStatus>('idle');
@@ -42,10 +44,4 @@ export class ReceivePane {
       this.recvProgress.set(0);
       this.saveDirectory.set(null);
     }
-  
-    // ── Helpers ──────────────────────────────────────────────
-    statusLabel(s: TransferStatus): string {
-      return { idle: 'Idle', connected: 'Ready', active: 'In progress', done: 'Complete', error: 'Error' }[s];
-    }
-  
 }

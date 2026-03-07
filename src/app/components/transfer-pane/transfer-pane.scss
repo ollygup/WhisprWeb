@@ -252,3 +252,44 @@
     color: var(--status-ok);
   }
 }
+
+
+// ── Notices ───────────────────────────────────────────────
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &--info {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent);
+  }
+
+  &--ok {
+    background: color-mix(in srgb, var(--status-ok) 8%, transparent);
+    border-color: color-mix(in srgb, var(--status-ok) 20%, transparent);
+    color: var(--status-ok);
+  }
+
+  &--waiting {
+    background: color-mix(in srgb, var(--status-warn) 8%, transparent);
+    border-color: color-mix(in srgb, var(--status-warn) 20%, transparent);
+    color: var(--status-warn);
+  }
+
+  &--err {
+    background: color-mix(in srgb, var(--status-err) 8%, transparent);
+    border-color: color-mix(in srgb, var(--status-err) 20%, transparent);
+    color: var(--status-err);
+  }
+}

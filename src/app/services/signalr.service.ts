@@ -1,8 +1,8 @@
 import { Injectable, signal } from "@angular/core";
 import { Observable, Subject } from "rxjs";
 import { environment } from "../../environments/environment";
-import { HubConnection, HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
-import { FileOfferDto, PeerSession } from "../models/common.model";
+import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
+import { CancelReason, FileOfferDto, PeerSession } from "../models/common.model";
 
 @Injectable({
   providedIn: 'root'
@@ -15,25 +15,27 @@ export class SignalRService {
   public connectionState = this._connectionState.asReadonly();
 
   // ── Whispr P2P ────────────────────────────────────────────
-  private _userCode$          = new Subject<string>();
-  private _peerSession        = signal<PeerSession | null>(null);
-  private _fileOffer          = signal<FileOfferDto | null>(null);
-  private _fileOfferResponse  = signal<boolean | null>(null); // null = no response yet
-  private _peerDisconnected$  = new Subject<void>();
+  private _userCode$ = new Subject<string>();
+  private _peerSession = signal<PeerSession | null>(null);
+  private _fileOffer = signal<FileOfferDto | null>(null);
+  private _fileOfferResponse = signal<boolean | null>(null); // null = no response yet
+  private _peerDisconnected$ = new Subject<void>();
+  private _cancelTransfer$ = new Subject<CancelReason>();
 
-  public onReceiveCode$      = this._userCode$.asObservable();
-  public peerSession         = this._peerSession.asReadonly();
-  public fileOffer           = this._fileOffer.asReadonly();
-  public fileOfferResponse   = this._fileOfferResponse.asReadonly();
+  public onReceiveCode$ = this._userCode$.asObservable();
+  public peerSession = this._peerSession.asReadonly();
+  public fileOffer = this._fileOffer.asReadonly();
+  public fileOfferResponse = this._fileOfferResponse.asReadonly();
   public onPeerDisconnected$ = this._peerDisconnected$.asObservable();
+  public cancelTransfer$ = this._cancelTransfer$.asObservable();
 
   // ── WebRTC signalling ─────────────────────────────────────
-  private _onOffer$        = new Subject<{ sdp: RTCSessionDescriptionInit; fromId: string }>();
-  private _onAnswer$       = new Subject<{ sdp: RTCSessionDescriptionInit; fromId: string }>();
+  private _onOffer$ = new Subject<{ sdp: RTCSessionDescriptionInit; fromId: string }>();
+  private _onAnswer$ = new Subject<{ sdp: RTCSessionDescriptionInit; fromId: string }>();
   private _onIceCandidate$ = new Subject<{ candidate: RTCIceCandidateInit; fromId: string }>();
 
-  public onOffer$        = this._onOffer$.asObservable();
-  public onAnswer$       = this._onAnswer$.asObservable();
+  public onOffer$ = this._onOffer$.asObservable();
+  public onAnswer$ = this._onAnswer$.asObservable();
   public onIceCandidate$ = this._onIceCandidate$.asObservable();
 
   // ── Connect ───────────────────────────────────────────────
@@ -41,6 +43,7 @@ export class SignalRService {
     return new Observable<void>(observer => {
       this.connection = new HubConnectionBuilder()
         .withUrl(this.hubUrl, { withCredentials: true })
+        .configureLogging(environment.production ? LogLevel.None : LogLevel.Information)
         .withAutomaticReconnect()
         .build();
 
@@ -116,6 +119,11 @@ export class SignalRService {
       this._fileOfferResponse.set(isAccepted);
     });
 
+    this.connection.on('ReceiveCancelFileTransfer', (reason: CancelReason) => {
+      console.log('[SignalR] ReceiveCancelFileTransfer from peer');
+      this._cancelTransfer$.next(reason);
+    });
+
     this.connection.onreconnecting(() => {
       this._connectionState.set(HubConnectionState.Reconnecting);
     });
@@ -170,6 +178,11 @@ export class SignalRService {
   async sendFileOfferResponse(targetConnectionId: string, isAccepted: boolean): Promise<void> {
     this.assertConnected();
     await this.connection!.invoke('SendFileOfferResponse', targetConnectionId, isAccepted);
+  }
+
+  async sendCancelFileTransfer(targetConnectionId: string, reason : CancelReason): Promise<void> {
+    this.assertConnected();
+    await this.connection!.invoke('SendCancelFileTransfer', targetConnectionId, reason);
   }
 
   // ── Helpers ───────────────────────────────────────────────
