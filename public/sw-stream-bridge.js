@@ -1,6 +1,6 @@
-const map = new Map();
+const map = new Map();          // id -> controller
+const pendingPulls = new Map(); // id -> { controller, resolve }
 
-// Read intercept path from registration URL at startup
 const swUrl = new URL(self.location.href);
 const INTERCEPT_PATH = swUrl.searchParams.get('interceptPath');
 
@@ -8,6 +8,7 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {
   event.waitUntil(self.clients.claim());
   map.clear();
+  pendingPulls.clear();
 });
 
 self.addEventListener('fetch', event => {
@@ -16,25 +17,34 @@ self.addEventListener('fetch', event => {
 
   const id = url.pathname.split(INTERCEPT_PATH)[1];
 
-  // Creates a ReadableStream that keeps the response body open indefinitely
   const stream = new ReadableStream({
     start(controller) {
       map.set(id, controller);
-      // Tell the page the stream is ready to receive chunks
       self.clients.matchAll().then(clients =>
         clients.forEach(c => c.postMessage({ type: 'stream-ready', id }))
       );
     },
-    // Cancel/Abort download from browser's download manager will trigger this
-    cancel(reason) {
-      map.delete(id);
-      // Notify the page so it can tell the sender to stop transmitting
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => client.postMessage({ 
-          type: 'transfer-cancelled', 
-          id 
-        }));
+
+    // Browser calls pull() when ready for the next chunk.
+    // Browser pause (download manager) -> pull() stops firing naturally.
+    // Browser resume -> pull() fires again
+    pull(controller) {
+      self.clients.matchAll().then(clients =>
+        clients.forEach(c => c.postMessage({ type: 'request-chunk', id }))
+      );
+
+      return new Promise(resolve => {
+        pendingPulls.set(id, { controller, resolve });
       });
+    },
+
+    // Fires on browser cancel (from browser's download manager)
+    cancel() {
+      map.delete(id);
+      pendingPulls.delete(id);
+      self.clients.matchAll().then(clients =>
+        clients.forEach(c => c.postMessage({ type: 'transfer-cancelled', id }))
+      );
     }
   });
 
@@ -47,26 +57,42 @@ self.addEventListener('fetch', event => {
   }));
 });
 
-// triggered by PostMessage (receiver's end)
 self.addEventListener('message', event => {
   const { id, chunk, done, cancel } = event.data;
   const controller = map.get(id);
   if (!controller) return;
 
-  // App-initiated cancel — abort the stream and clean up
+  // App-level cancel
   if (cancel) {
-    try { controller.error('cancelled'); } catch { }
+    try { controller.error('cancelled'); } catch {}
     map.delete(id);
+    pendingPulls.delete(id);
     return;
   }
 
+  processChunk(id, chunk, done);
+});
+
+function processChunk(id, chunk, done) {
+  const controller = map.get(id);
+  const pending = pendingPulls.get(id);
+
   try {
-    done ? (controller.close(), map.delete(id))
-         : controller.enqueue(new Uint8Array(chunk));
+    if (done) {
+      controller.close();
+      map.delete(id);
+      pendingPulls.delete(id);
+      pending?.resolve();
+    } else if (pending) {
+      pending.controller.enqueue(new Uint8Array(chunk));
+      pendingPulls.delete(id);
+      pending.resolve(); // browser may now call pull() again
+    }
   } catch (err) {
     map.delete(id);
+    pendingPulls.delete(id);
     self.clients.matchAll().then(clients =>
       clients.forEach(c => c.postMessage({ type: 'transfer-failed', id }))
     );
   }
-});
+}

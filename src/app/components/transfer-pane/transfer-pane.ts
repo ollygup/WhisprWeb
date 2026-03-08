@@ -8,7 +8,7 @@ import { SwalService } from '../../services/swal.service';
 import { WebrtcService } from '../../services/webrtc.service';
 import { transferStatusLabel } from '../../models/common.model';
 
-type DataMessage = { type: 'transfer-complete' };
+type DataMessage = { type: 'transfer-complete' | 'request-chunk' };
 
 const CHUNK_SIZE = 64 * 1024; // 64KB
 
@@ -31,6 +31,15 @@ export class TransferPane implements OnInit, OnDestroy {
   private downloadId: string | null = null;
   private bytesReceived = 0;
 
+  // ── Pull-based send state ─────────────────────────────────
+  // Chunks are sent one at a time in response to 'request-chunk' signals
+  // from the receiver's SW.
+  private currentChunkIndex = 0;
+  private totalChunks = 0;
+  private pendingChunkRequest = false;
+  private chunkRequestTimeout: number | null = null;
+  private readonly RECEIVER_IDLE_MS = 1000;
+
   // ── Peer connected gate ───────────────────────────────────
   peerConnected = signal(false);
 
@@ -42,6 +51,9 @@ export class TransferPane implements OnInit, OnDestroy {
   isDragging = signal(false);
   peerReady = signal(false);
   peerRejected = signal(false);
+  // True when no request-chunk has arrived after RECEIVER_IDLE_MS —
+  // receiver likely paused from their browser download manager
+  senderIdleHint = signal(false);
 
   // ── Receiver state ────────────────────────────────────────
   incomingFileOffer = signal<FileOfferDto | null>(null);
@@ -49,16 +61,14 @@ export class TransferPane implements OnInit, OnDestroy {
   receiveProgress = signal(0);
   offerCancelledByPeer = false;
 
-  // ── Receiver's download popup ────────────────────────────────────────
+  // ── Receiver's download popup ─────────────────────────────
   private swalRef: any = null;
-
 
   constructor(
     private webrtcService: WebrtcService,
     private signalRService: SignalRService,
     private swalService: SwalService
   ) {
-    // Track peer session
     effect(() => {
       this.peerSession = this.signalRService.peerSession();
       this.peerConnected.set(this.peerSession?.isFull ?? false);
@@ -69,7 +79,6 @@ export class TransferPane implements OnInit, OnDestroy {
       }
     });
 
-    // Incoming file offer from peer — show Swal prompt immediately
     effect(() => {
       const offer = this.signalRService.fileOffer();
       if (!offer) return;
@@ -85,14 +94,12 @@ export class TransferPane implements OnInit, OnDestroy {
       this.webrtcService.data$.subscribe(data => this.handleIncoming(data))
     );
 
-    // Peer disconnected
     this.sub.add(
       this.signalRService.onPeerDisconnected$.subscribe(() => {
-        // Tell SW to close any open stream for this session
         if (this.downloadId) {
-          navigator.serviceWorker.controller?.postMessage({ 
-            id: this.downloadId, 
-            done: true    // triggers controller.close() in SW
+          navigator.serviceWorker.controller?.postMessage({
+            id: this.downloadId,
+            done: true
           });
         }
         this.resetSend();
@@ -101,7 +108,6 @@ export class TransferPane implements OnInit, OnDestroy {
       })
     );
 
-    // Peer response to the file offer
     this.sub.add(
       this.signalRService.fileOfferResponse$.subscribe((response) => {
         if (response === true) {
@@ -122,22 +128,26 @@ export class TransferPane implements OnInit, OnDestroy {
       })
     );
 
-    // Wait for SW to confirm stream is open before notifying sender
     navigator.serviceWorker.addEventListener('message', (event) => {
-      // transfer-cancelled: user clicked ✕ on the browser download bar
+      // SW pull() fired — forward chunk request to sender via WebRTC
+      if (event.data?.type === 'request-chunk' && event.data?.id === this.downloadId) {
+        this.webrtcService.sendMessage(JSON.stringify({ type: 'request-chunk' }));
+      }
+
+      // Browser cancelled from download bar
       if (event.data?.type === 'transfer-cancelled' && event.data?.id === this.downloadId) {
         this.downloadId = null;
         this.resetReceive();
         const remoteConnectionId = this.getRemoteConnectionId();
-        if(remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, "user-cancelled");
+        if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, 'user-cancelled');
       }
-    
-      // transfer-failed: enqueue threw — stream was in bad state
+
+      // Stream enqueue threw — bad state
       if (event.data?.type === 'transfer-failed' && event.data?.id === this.downloadId) {
         this.downloadId = null;
         this.receiveStatus.set('error');
         const remoteConnectionId = this.getRemoteConnectionId();
-        if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, "transfer-failed");
+        if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, 'transfer-failed');
       }
     });
   }
@@ -149,14 +159,12 @@ export class TransferPane implements OnInit, OnDestroy {
   // ── Receiver: Swal prompt ─────────────────────────────────
   private async promptFileOffer(offer: FileOfferDto): Promise<void> {
     this.offerCancelledByPeer = false;
-    this.swalRef = this.swalService.showFileOfferPrompt(offer.name,this.formatBytes(offer.size));
-  
-    const result = await this.swalRef; // if this swal is closed by swalService.CloseAll(), it will return "result.isConfirmed() = false"
+    this.swalRef = this.swalService.showFileOfferPrompt(offer.name, this.formatBytes(offer.size));
+
+    const result = await this.swalRef;
     this.swalRef = null;
-    
-    // so if it is cancelled by the peer, return here to prevent calling "this.dismissOffer()", 
-    // as "this.dismissOffer()" should only be called to notify the sender if the receiver cancels it 
-    if (this.offerCancelledByPeer) return; 
+
+    if (this.offerCancelledByPeer) return;
 
     if (result.isConfirmed) {
       this.acceptOffer(offer);
@@ -168,12 +176,12 @@ export class TransferPane implements OnInit, OnDestroy {
   // ── Receiver: accept — open SW stream + notify sender ─────
   private acceptOffer(offer: FileOfferDto): void {
     this.downloadId = crypto.randomUUID();
-  
+
     const name = encodeURIComponent(offer.name);
     const a = document.createElement('a');
     a.href = `${environment.swInterceptPath}${this.downloadId}?name=${name}&size=${offer.size}`;
     a.click();
-  
+
     this.receiveStatus.set('active');
     const targetId = this.getRemoteConnectionId();
     if (targetId) this.signalRService.sendFileOfferResponse(targetId, true);
@@ -186,12 +194,20 @@ export class TransferPane implements OnInit, OnDestroy {
     this.resetReceive();
   }
 
-  // ── Incoming data — pipe chunks straight to SW ────────────
+  // ── Incoming data ─────────────────────────────────────────
   private handleIncoming(data: ArrayBuffer | string): void {
     if (typeof data === 'string') {
       try {
         const msg = JSON.parse(data) as DataMessage;
-        if (msg.type === 'transfer-complete') this.finaliseDownload();
+
+        if (msg.type === 'request-chunk') {
+          this.sendNextChunk();
+          return;
+        }
+
+        if (msg.type === 'transfer-complete') {
+          this.finaliseDownload();
+        }
       } catch { console.error('[Transfer] Failed to parse message'); }
       return;
     }
@@ -224,15 +240,15 @@ export class TransferPane implements OnInit, OnDestroy {
     this.receiveProgress.set(100);
   }
 
-  // ── Sender: file pick — store only, no offer sent yet ─────
+  // ── Sender: file pick ─────────────────────────────────────
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
     this.setFile(file);
-    input.value = '';  // reset, otherwise same file cannot be selected again
+    input.value = '';
   }
-  
+
   onDragOver(e: DragEvent) { e.preventDefault(); this.isDragging.set(true); }
   onDragLeave() { this.isDragging.set(false); }
 
@@ -250,10 +266,10 @@ export class TransferPane implements OnInit, OnDestroy {
     this.fileSize.set(this.formatBytes(file.size));
     this.peerReady.set(false);
     this.peerRejected.set(false);
-    this.sendStatus.set('idle'); // stay idle — offer not sent until user clicks Send
+    this.sendStatus.set('idle');
   }
 
-  // ── Sender: send offer — triggered by Send File button ────
+  // ── Sender: send offer ────────────────────────────────────
   sendOffer(): void {
     if (!this.selectedFile) return;
 
@@ -266,7 +282,6 @@ export class TransferPane implements OnInit, OnDestroy {
       totalChunks
     };
 
-    // reset statuses
     this.peerRejected.set(false);
     this.sendStatus.set('idle');
     this.sendProgress.set(0);
@@ -274,37 +289,69 @@ export class TransferPane implements OnInit, OnDestroy {
     const targetId = this.getRemoteConnectionId();
     if (targetId) this.signalRService.sendFileOffer(targetId, offer);
 
-    this.sendStatus.set('connected'); // offer sent — waiting for peer response
+    this.sendStatus.set('connected');
   }
 
-  // ── Sender: send chunks — auto-called when peer accepts ───
-  async startSend(): Promise<void> {
+  // ── Sender: prepare — actual sending is event-driven ─────
+  startSend(): void {
     if (!this.selectedFile) return;
 
     this.sendStatus.set('active');
     this.sendProgress.set(0);
+    this.currentChunkIndex = 0;
+    this.totalChunks = Math.ceil(this.selectedFile.size / CHUNK_SIZE);
 
-    const file = this.selectedFile;
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-
-    for (let i = 0; i < totalChunks; i++) {
-      await this.webrtcService.waitForBufferDrain(); // event-driven, not polling
-
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = await file.slice(start, end).arrayBuffer();
-
-      this.webrtcService.sendBuffer(chunk);
-      this.sendProgress.set(Math.round(((i + 1) / totalChunks) * 100));
+    // Flush any request-chunk that arrived before SignalR completed
+    if (this.pendingChunkRequest) {
+      this.pendingChunkRequest = false;
+      this.sendNextChunk();
     }
-
-    // Wait for final chunks to drain before signalling complete
-    await this.webrtcService.waitForBufferDrain();
-    this.webrtcService.sendMessage(JSON.stringify({ type: 'transfer-complete' }));
-    this.sendStatus.set('done');
   }
 
+  // ── Sender: send one chunk per request-chunk signal ───────
+  private async sendNextChunk(): Promise<void> {
+    // Chunk requested — receiver is active, clear the idle hint and timer
+    if (this.chunkRequestTimeout !== null) {
+      clearTimeout(this.chunkRequestTimeout);
+      this.chunkRequestTimeout = null;
+    }
+    this.senderIdleHint.set(false);
+
+    if (!this.selectedFile || this.totalChunks === 0) {
+      this.pendingChunkRequest = true;
+      return;
+    }
+
+    if (this.currentChunkIndex >= this.totalChunks) {
+      this.webrtcService.sendMessage(JSON.stringify({ type: 'transfer-complete' }));
+      this.sendStatus.set('done');
+      return;
+    }
+
+    const start = this.currentChunkIndex * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, this.selectedFile.size);
+    const chunk = await this.selectedFile.slice(start, end).arrayBuffer();
+
+    this.webrtcService.sendBuffer(chunk);
+    this.currentChunkIndex++;
+    this.sendProgress.set(Math.round((this.currentChunkIndex / this.totalChunks) * 100));
+
+    // Start watching — if no request arrives within RECEIVER_IDLE_MS,
+    // the receiver has likely paused from their browser download manager
+    this.chunkRequestTimeout = setTimeout(() => {
+      this.chunkRequestTimeout = null;
+      if (this.sendStatus() === 'active') {
+        this.senderIdleHint.set(true);
+      }
+    }, this.RECEIVER_IDLE_MS);
+  }
+
+  // ── Resets ────────────────────────────────────────────────
   resetSend() {
+    if (this.chunkRequestTimeout !== null) {
+      clearTimeout(this.chunkRequestTimeout);
+      this.chunkRequestTimeout = null;
+    }
     this.sendStatus.set('idle');
     this.sendProgress.set(0);
     this.fileName.set(null);
@@ -312,6 +359,10 @@ export class TransferPane implements OnInit, OnDestroy {
     this.selectedFile = null;
     this.peerReady.set(false);
     this.peerRejected.set(false);
+    this.senderIdleHint.set(false);
+    this.currentChunkIndex = 0;
+    this.totalChunks = 0;
+    this.pendingChunkRequest = false;
   }
 
   resetReceive() {
@@ -322,12 +373,13 @@ export class TransferPane implements OnInit, OnDestroy {
     this.bytesReceived = 0;
   }
 
+  // ── Cancel ────────────────────────────────────────────────
   cancelSend(): void {
     const remoteConnectionId = this.getRemoteConnectionId();
     if (remoteConnectionId) this.signalRService.sendCancelFileTransfer(remoteConnectionId, 'user-cancelled');
     this.sendStatus.set('self-cancelled');
   }
-  
+
   cancelReceive(): void {
     if (this.downloadId) {
       navigator.serviceWorker.controller?.postMessage({ id: this.downloadId, cancel: true });
@@ -339,13 +391,13 @@ export class TransferPane implements OnInit, OnDestroy {
   }
 
   private cancelledByPeer(reason: CancelReason): void {
-    if (this.swalRef) { // if swal reference exist, it means the FileOffer popup is shown
+    if (this.swalRef) {
       this.offerCancelledByPeer = true;
       this.swalService.closeAll();
       this.swalRef = null;
       this.resetReceive();
     }
-  
+
     if (this.downloadId) {
       navigator.serviceWorker.controller?.postMessage({ id: this.downloadId, cancel: true });
       this.downloadId = null;
@@ -353,11 +405,9 @@ export class TransferPane implements OnInit, OnDestroy {
     } else {
       this.sendStatus.set(reason === 'transfer-failed' ? 'error' : 'cancelled');
     }
-  
   }
 
   // ── Helpers ───────────────────────────────────────────────
-
   formatBytes(b: number): string {
     if (b < 1024) return `${b} B`;
     if (b < 1024 ** 2) return `${(b / 1024).toFixed(1)} KB`;
