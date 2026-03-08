@@ -105,3 +105,7 @@ The frontend will use the value from the `.env` file to connect to the productio
 | X-Content-Type-Options | nosniff | Prevents MIME sniffing | Forces browser to trust the declared Content-Type header. Stops browser from guessing file types and potentially executing malicious code disguised as another file type. |
 | Referrer-Policy | strict-origin-when-cross-origin | Protects user privacy | When a user navigates away from Whispr, only the domain is sent to the destination — never the full URL or any query parameters. |
 | X-Frame-Options | DENY | Prevents clickjacking | Blocks other websites from embedding Whispr inside an iframe. Prevents attackers from overlaying invisible frames to trick users into unintended actions. |
+
+
+## SEO & Meta
+- Meta tags and JSON-LD in `src/index.html`
