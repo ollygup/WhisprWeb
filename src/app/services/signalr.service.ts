@@ -21,6 +21,7 @@ export class SignalRService {
   private _fileOfferResponse = new Subject<boolean>();
   private _peerDisconnected$ = new Subject<void>();
   private _cancelTransfer$ = new Subject<CancelReason>();
+  private _errorMessage$ = new Subject<string>();
 
   public onReceiveCode$ = this._userCode$.asObservable();
   public peerSession = this._peerSession.asReadonly();
@@ -28,6 +29,7 @@ export class SignalRService {
   public fileOfferResponse$ = this._fileOfferResponse.asObservable();
   public onPeerDisconnected$ = this._peerDisconnected$.asObservable();
   public cancelTransfer$ = this._cancelTransfer$.asObservable();
+  public errorMessage$ = this._errorMessage$.asObservable();
 
   // ── WebRTC signalling ─────────────────────────────────────
   private _onOffer$ = new Subject<{ sdp: RTCSessionDescriptionInit; fromId: string }>();
@@ -73,7 +75,8 @@ export class SignalRService {
     if (!this.connection) return;
 
     this.connection.on('Error', (errorMsg: string) => {
-      console.error('[SignalR] Error:', errorMsg);
+      console.log('[SignalR] Error:', errorMsg);
+      this._errorMessage$.next(errorMsg);
     });
 
     this.connection.on('ReceiveCode', (code: string) => {

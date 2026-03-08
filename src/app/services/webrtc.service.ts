@@ -16,7 +16,7 @@ export class WebrtcService implements OnDestroy {
     private subscription = new Subscription();
 
     // ── Buffer thresholds ─────────────────────────────────────
-    private readonly BUFFER_MAX       = 8 * 1024 * 1024; // 8MB — pause sending
+    private readonly BUFFER_MAX = 8 * 1024 * 1024; // 8MB — pause sending
     private readonly BUFFER_THRESHOLD = 1 * 1024 * 1024; // 1MB — resume sending
 
     // ── Public streams ────────────────────────────────────────
@@ -94,7 +94,7 @@ export class WebrtcService implements OnDestroy {
     waitForBufferDrain(): Promise<void> {
         if (!this.dataChannel) return Promise.resolve();
         if (this.dataChannel.bufferedAmount < this.BUFFER_MAX) return Promise.resolve();
-    
+
         return new Promise(resolve => {
             const handler = () => {
                 // Once fired, remove itself so it doesn't trigger again
@@ -148,9 +148,13 @@ export class WebrtcService implements OnDestroy {
         // Tell the browser to fire bufferedamountlow when buffer drains to 1MB
         this.dataChannel.bufferedAmountLowThreshold = this.BUFFER_THRESHOLD;
 
-        this.dataChannel.onopen    = () => { console.log('[WebRTC] Data channel open'); this._connectionState$.next('connected'); };
-        this.dataChannel.onclose   = () => { console.log('[WebRTC] Data channel closed'); this._connectionState$.next('disconnected'); };
-        this.dataChannel.onerror   = (err) => { this._error$.next('Data channel error'); console.error('[WebRTC] Data channel error:', err); };
+        this.dataChannel.onopen = () => { console.log('[WebRTC] Data channel open'); this._connectionState$.next('connected'); };
+        this.dataChannel.onclose = () => { console.log('[WebRTC] Data channel closed'); this._connectionState$.next('disconnected'); };
+        this.dataChannel.onerror = (err) => {
+            this._error$.next('Data channel error');
+            console.error('[WebRTC] Data channel error:', err);
+            this.cleanup();
+        };
         this.dataChannel.onmessage = (event) => this._data$.next(event.data);
     }
 
@@ -163,6 +167,7 @@ export class WebrtcService implements OnDestroy {
         } catch (err) {
             this._error$.next('Failed to create offer');
             console.error('[WebRTC] Offer error:', err);
+            this.cleanup();
         }
     }
 
@@ -203,6 +208,7 @@ export class WebrtcService implements OnDestroy {
                 } catch (err) {
                     this._error$.next('Failed to handle offer');
                     console.error('[WebRTC] Answer error:', err);
+                    this.cleanup();
                 }
             })
         );
@@ -215,6 +221,7 @@ export class WebrtcService implements OnDestroy {
                 } catch (err) {
                     this._error$.next('Failed to handle answer');
                     console.error('[WebRTC] Set remote answer error:', err);
+                    this.cleanup();
                 }
             })
         );
@@ -226,6 +233,7 @@ export class WebrtcService implements OnDestroy {
                     await this.rtcConnection.addIceCandidate(new RTCIceCandidate(candidate));
                 } catch (err) {
                     console.error('[WebRTC] Failed to add ICE candidate:', err);
+                    this.cleanup();
                 }
             })
         );

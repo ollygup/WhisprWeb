@@ -158,6 +158,19 @@ export class UserPane implements OnInit, OnDestroy {
       })
     );
 
+    this.sub.add(
+      this.signalRService.errorMessage$.subscribe((error) => {
+        this.error.set(error);
+        setTimeout(() => this.error.set(null), 4000);
+      })
+    );
+
+    this.sub.add(
+      this.webrtcService.error$.subscribe((error) => {
+        this.clearPeerState();
+      })
+    );
+
     this.connect();
   }
 
@@ -221,6 +234,12 @@ export class UserPane implements OnInit, OnDestroy {
   // Notifies peer via SignalR then clears local state
   clearPeer() {
     this.signalRService.leaveGroup();
+    this.peerUserCode.set(null);
+    this.peerInput.set('');
+  }
+
+  // If webrtc error, use this to clear state
+  clearPeerState() {
     this.peerUserCode.set(null);
     this.peerInput.set('');
   }
