@@ -152,7 +152,7 @@ export class WebrtcService implements OnDestroy {
         this.dataChannel.onclose = () => { console.log('[WebRTC] Data channel closed'); this._connectionState$.next('disconnected'); };
         this.dataChannel.onerror = (err) => {
             this._error$.next('Data channel error');
-            console.error('[WebRTC] Data channel error:', err);
+            console.log('[WebRTC] Data channel error:', err);
             this.cleanup();
         };
         this.dataChannel.onmessage = (event) => this._data$.next(event.data);
