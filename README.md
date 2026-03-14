@@ -109,3 +109,19 @@ The frontend will use the value from the `.env` file to connect to the productio
 
 ## SEO & Meta
 - Meta tags and JSON-LD in `src/index.html`
+
+
+## Analytics
+The gtag ID in src/index.html is tied to the original project's Google Analytics property. If you're forking or self-hosting, replace G-XXXXXXXXXX with your own Google Analytics Measurement ID or remove the gtag script entirely if you don't need analytics (see below).
+```
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJG4NRL8JM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-MJG4NRL8JM');
+  </script>
+
+```
