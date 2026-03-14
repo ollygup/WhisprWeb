@@ -26,11 +26,11 @@ No files pass through or are stored on the server.
 
 6. Once the peer connection is established, a **WebRTC DataChannel** is created.
 
-7. Users select whether they want to **send** or **receive** files.
+7. Sender select a file to send to peer.
 
-8. The receiver configures a **download directory**.
+8. The receiver receives a popup request to accept the file offer.
 
-9. Files are transferred in **chunks through the WebRTC DataChannel**.
+9. Files are transferred in **chunks through the WebRTC DataChannel** into the browser's configured download directory.
 
 Transfer speed is limited by the **slowest network connection between the two peers**.
 
@@ -112,3 +112,19 @@ The frontend will use the value from the `.env` file to connect to the productio
 
 ## SEO & Meta
 - Meta tags and JSON-LD in `src/index.html`
+
+
+## Analytics
+The gtag ID in src/index.html is tied to the original project's Google Analytics property. If you're forking or self-hosting, replace G-XXXXXXXXXX with your own Google Analytics Measurement ID or remove the gtag script entirely if you don't need analytics (see below).
+```
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJG4NRL8JM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-MJG4NRL8JM');
+  </script>
+
+```
