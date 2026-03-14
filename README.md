@@ -23,11 +23,11 @@ No files pass through or are stored on the server.
 
 6. Once the peer connection is established, a **WebRTC DataChannel** is created.
 
-7. Users select whether they want to **send** or **receive** files.
+7. Sender select a file to send to peer.
 
-8. The receiver configures a **download directory**.
+8. The receiver receives a popup request to accept the file offer.
 
-9. Files are transferred in **chunks through the WebRTC DataChannel**.
+9. Files are transferred in **chunks through the WebRTC DataChannel** into the browser's configured download directory.
 
 Transfer speed is limited by the **slowest network connection between the two peers**.
 
