@@ -1,7 +1,9 @@
 # Whispr
-![Live](https://img.shields.io/badge/Live-UP-brightgreen?style=flat-square)
-![Stars](https://img.shields.io/github/stars/ollygup/WhisprWeb?style=flat-square)
-![Last commit](https://img.shields.io/github/last-commit/ollygup/WhisprWeb?style=flat-square)
+<div align="center">
+![Live](https://img.shields.io/badge/Live-UP-brightgreen?style=for-the-badge)
+![Stars](https://img.shields.io/github/stars/ollygup/WhisprWeb?style=for-the-badge)
+![Last commit](https://img.shields.io/github/last-commit/ollygup/WhisprWeb?style=for-the-badge)
+</div>
 
 **Peer-to-peer file transfer using WebRTC.**
 
