@@ -14,6 +14,18 @@ export class SignalRService {
   private _connectionState = signal<HubConnectionState>(HubConnectionState.Disconnected);
   public connectionState = this._connectionState.asReadonly();
 
+  constructor() {
+    // Warn before refresh/close while in an active session — refreshing
+    // mid-session disconnects the peer and generates a new code
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', (event) => {
+        if (!this._peerSession()?.isFull) return;
+        event.preventDefault();
+        event.returnValue = '';
+      });
+    }
+  }
+
   // ── Whispr P2P ────────────────────────────────────────────
   private _userCode$ = new Subject<string>();
   private _peerSession = signal<PeerSession | null>(null);

@@ -38,6 +38,7 @@ export class UserPane implements OnInit, OnDestroy {
 
   private sub = new Subscription();
   private statsTimer?: ReturnType<typeof setInterval>;
+  private wasSessionFull = false;
 
   // ── Local user ────────────────────────────────────────────
   userCode = signal<string | null>(null);
@@ -80,6 +81,14 @@ export class UserPane implements OnInit, OnDestroy {
       const session = this.signalRService.peerSession();
 
       if (session?.isFull) {
+        // One-time warning per pairing — refreshing mid-session disconnects
+        // the peer and issues a new code
+        if (!this.wasSessionFull) {
+          this.swalService.showCornerPopupMsg(
+            'Connected. Don\'t refresh mid-session — it disconnects your peer and gives you a new code.'
+          );
+        }
+
         const myId = this.signalRService.getMyConnectionId();
         const remotePeer: UserInfo | null =
           session.userA?.connectionId === myId ? session.userB :
@@ -87,6 +96,8 @@ export class UserPane implements OnInit, OnDestroy {
               null;
         if (remotePeer) this.peerUserCode.set(remotePeer.userCode);
       }
+
+      this.wasSessionFull = session?.isFull ?? false;
 
       // Session cleared by server (peer left or disconnected)
       if (!session) {
