@@ -287,7 +287,16 @@ export class TransferPane implements OnInit, OnDestroy {
     this.sendProgress.set(0);
 
     const targetId = this.getRemoteConnectionId();
-    if (targetId) this.signalRService.sendFileOffer(targetId, offer);
+    if (!targetId) {
+      console.log('[Transfer] No remote peer id - cannot send file offer');
+      this.swalService.showError('Lost the connection to your peer. Reconnect before sending.');
+      return;
+    }
+
+    this.signalRService.sendFileOffer(targetId, offer).catch(err => {
+      console.error('[Transfer] Failed to send file offer:', err);
+      this.swalService.showError('Failed to send the file request. Please try again.');
+    });
 
     this.sendStatus.set('connected');
   }

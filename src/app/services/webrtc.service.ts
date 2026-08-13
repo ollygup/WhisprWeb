@@ -73,7 +73,7 @@ export class WebrtcService implements OnDestroy {
         if (this.dataChannel?.readyState === 'open') {
             this.dataChannel.send(data);
         } else {
-            console.warn('[WebRTC] Data channel not open');
+            console.log('[WebRTC] Data channel not open');
         }
     }
 
@@ -81,7 +81,7 @@ export class WebrtcService implements OnDestroy {
         if (this.dataChannel?.readyState === 'open') {
             this.dataChannel.send(data);
         } else {
-            console.warn('[WebRTC] Data channel not open');
+            console.log('[WebRTC] Data channel not open');
         }
     }
 

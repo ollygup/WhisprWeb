@@ -129,8 +129,23 @@ export class SignalRService {
       this._connectionState.set(HubConnectionState.Reconnecting);
     });
 
-    this.connection.onreconnected(() => {
+    this.connection.onreconnected(async () => {
       this._connectionState.set(HubConnectionState.Connected);
+
+      // A reconnect means a brand-new connection id, so the server no longer
+      // knows this session or this user — clear the stale state instead of
+      // letting the UI pretend the peer connection is still alive.
+      this._peerSession.set(null);
+      this._fileOffer.set(null);
+      this._peerDisconnected$.next();
+
+      // Re-register so the hub knows the user again (a fresh code arrives)
+      try {
+        await this.connection!.invoke('Register');
+      } catch (err) {
+        console.error('[SignalR] Re-register after reconnect failed:', err);
+        this._errorMessage$.next('Reconnected but registration failed. Please reload.');
+      }
     });
 
     this.connection.onclose(() => {
@@ -145,12 +160,23 @@ export class SignalRService {
     this.connection!.invoke('JoinUserGroup', code);
   }
 
-  // Called when user explicitly disconnects peer from user-pane
-  public leaveGroup(): void {
-    this.assertConnected();
-    this.connection!.invoke('LeaveGroup');
-    this._peerSession.set(null);
-    this._fileOffer.set(null);
+  // Called when user explicitly disconnects peer from user-pane.
+  // Never throws — local session state is always cleared so the UI
+  // can never stay stuck in a connection, even if the hub is down.
+  public async leaveGroup(): Promise<void> {
+    try {
+      if (this.connection?.state === HubConnectionState.Connected) {
+        await this.connection.invoke('LeaveGroup');
+      } else {
+        console.log('[SignalR] LeaveGroup skipped - hub not connected');
+      }
+    } catch (err) {
+      console.error('[SignalR] LeaveGroup failed:', err);
+      this._errorMessage$.next('Failed to disconnect. Check your connection and try again.');
+    } finally {
+      this._peerSession.set(null);
+      this._fileOffer.set(null);
+    }
   }
 
   async sendWebRtcOffer(targetConnectionId: string, sdp: RTCSessionDescriptionInit): Promise<void> {
