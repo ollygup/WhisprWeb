@@ -295,6 +295,7 @@ export class TransferPane implements OnInit, OnDestroy {
 
     this.signalRService.sendFileOffer(targetId, offer).catch(err => {
       console.error('[Transfer] Failed to send file offer:', err);
+      this.sendStatus.set('idle');   // re-enable Send for retry
       this.swalService.showError('Failed to send the file request. Please try again.');
     });
 
