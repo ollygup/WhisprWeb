@@ -37,13 +37,22 @@ export class WebrtcService implements OnDestroy {
         effect(() => {
             const session = this.signalRService.peerSession();
 
-            if (session?.isFull && !this.rtcConnection) {
-                this.peerSessionData = session;
-                this.initializePeerConnection(session);
+            if (!session) {
+                if (this.rtcConnection) this.cleanup();
+                return;
             }
 
-            if (!session && this.rtcConnection) {
+            if (!session.isFull) return;
+
+            // Session changed while already connected — drop the stale channel
+            // so data is never routed to the previous peer, then reconnect fresh
+            if (this.rtcConnection && this.peerSessionData !== session) {
                 this.cleanup();
+            }
+
+            if (!this.rtcConnection) {
+                this.peerSessionData = session;
+                this.initializePeerConnection(session);
             }
         });
 

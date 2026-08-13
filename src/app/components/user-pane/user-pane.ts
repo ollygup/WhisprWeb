@@ -228,6 +228,19 @@ export class UserPane implements OnInit, OnDestroy {
   connectToPeer() {
     const val = this.peerInput().trim().toUpperCase();
     if (!val) return;
+
+    // Block joining a new group while already in an active session
+    if (this.signalRService.peerSession()?.isFull) {
+      this.swalService.showError('You are already in a group, leave to join a new one');
+      return;
+    }
+
+    // Block joining your own session
+    if (val === this.userCode()) {
+      this.swalService.showError('You cannot join your own session');
+      return;
+    }
+
     this.signalRService.joinUserGroup(val);
   }
 

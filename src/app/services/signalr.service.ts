@@ -86,6 +86,19 @@ export class SignalRService {
 
     this.connection.on('UserJoined', (session: PeerSession) => {
       console.log('[SignalR] UserJoined:', session);
+      const current = this._peerSession();
+
+      // Defense-in-depth: never swap to a different session while already in one
+      const sameSession =
+        current?.isFull &&
+        current.userA?.connectionId === session.userA?.connectionId &&
+        current.userB?.connectionId === session.userB?.connectionId;
+
+      if (current?.isFull && !sameSession) {
+        this._errorMessage$.next('You are already in a session. Leave it first.');
+        return;
+      }
+
       this._peerSession.set(session);
     });
 
