@@ -13,18 +13,11 @@ export class ServiceWorkerService {
     }
   
     try {
-      // on register, first remove all old SW
-      // this ensures a new service worker is installed everytime, making sure it is the latest service worker
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const reg of registrations) {
-        await reg.unregister();
-      }
-  
       const swUrl = `/sw-stream-bridge.js?interceptPath=${encodeURIComponent(environment.swInterceptPath)}`;
-  
+
       const registration = await navigator.serviceWorker.register(swUrl);
       await navigator.serviceWorker.ready;
-  
+
       this.ready = true;
       console.log('[SW] Registered and ready');
     } catch (err) {

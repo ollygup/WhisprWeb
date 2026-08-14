@@ -99,7 +99,7 @@ export class TransferPane implements OnInit, OnDestroy {
         if (this.downloadId) {
           navigator.serviceWorker.controller?.postMessage({
             id: this.downloadId,
-            done: true
+            cancel: true
           });
         }
         this.resetSend();
@@ -180,6 +180,9 @@ export class TransferPane implements OnInit, OnDestroy {
     const name = encodeURIComponent(offer.name);
     const a = document.createElement('a');
     a.href = `${environment.swInterceptPath}${this.downloadId}?name=${name}&size=${offer.size}`;
+    // download attribute = direct download, no navigation — otherwise the
+    // page's beforeunload guard fires and shows a spurious "Leave site?" dialog
+    a.download = offer.name;
     a.click();
 
     this.receiveStatus.set('active');
@@ -206,7 +209,14 @@ export class TransferPane implements OnInit, OnDestroy {
         }
 
         if (msg.type === 'transfer-complete') {
+          // Receiver: file fully written — close the SW stream.
+          // Sender: peer finished receiving — mark the transfer complete.
           this.finaliseDownload();
+          if (this.sendStatus() === 'active') {
+            this.sendStatus.set('done');
+            this.sendProgress.set(100);
+          }
+          return;
         }
       } catch { console.error('[Transfer] Failed to parse message'); }
       return;
@@ -226,11 +236,20 @@ export class TransferPane implements OnInit, OnDestroy {
       this.receiveProgress.set(Math.min(
         Math.round((this.bytesReceived / offer.size) * 100), 99
       ));
+
+      // Receiver-driven completion: the browser stops pulling once the
+      // Content-Length is satisfied, so close the stream and tell the sender
+      // ourselves instead of waiting for a final request-chunk.
+      if (this.bytesReceived >= offer.size) {
+        this.finaliseDownload();
+        this.webrtcService.sendMessage(JSON.stringify({ type: 'transfer-complete' }));
+      }
     }
   }
 
   // ── Receiver: finalise — tell SW to close the stream ──────
   private finaliseDownload(): void {
+    if (!this.downloadId) return;
     navigator.serviceWorker.controller?.postMessage(
       { id: this.downloadId, done: true }
     );

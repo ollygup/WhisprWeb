@@ -33,8 +33,6 @@ const MAX_HISTORY = 20;
 export class UserPane implements OnInit, OnDestroy {
   // if join from QR
   pendingGroupId = input<string | null>(null);
-  private _pendingGroupId = signal<string | null>(null);
-
 
   private sub = new Subscription();
   private statsTimer?: ReturnType<typeof setInterval>;
@@ -105,31 +103,6 @@ export class UserPane implements OnInit, OnDestroy {
         this.peerInput.set('');
       }
     });
-
-    effect(() => {
-      const groupId = this._pendingGroupId();
-      if (!groupId) return;
-
-      if (this.connected()) {
-        this.swalService.showError("You are already in a group, leave to join a new one");
-      } else {
-        this.peerInput.set(groupId);
-        this.connect();
-      }
-
-      // Clear local copy to prevent re-trigger
-      this._pendingGroupId.set(null);
-    });
-
-    effect(() => {
-      const isConnected = this.connected();
-      const groupId = this.pendingGroupId();
-      if (isConnected && groupId !== null) {
-        this.peerInput.set(groupId);
-        this.connectToPeer();
-      }
-    })
-
   }
 
   ngOnInit() {
@@ -139,6 +112,15 @@ export class UserPane implements OnInit, OnDestroy {
         this.connected.set(true);
         this.connecting.set(false);
         this.qrService.updateData(code);
+
+        // Auto-join once per registration when arriving with a ?join= link.
+        // Runs here (not in a reactive effect) so session-state changes can
+        // never re-trigger it after the join has succeeded.
+        const groupId = this.pendingGroupId();
+        if (groupId) {
+          this.peerInput.set(groupId);
+          this.connectToPeer();
+        }
       })
     );
 
