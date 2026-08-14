@@ -175,14 +175,23 @@ export class TransferPane implements OnInit, OnDestroy {
 
   // ── Receiver: accept — open SW stream + notify sender ─────
   private acceptOffer(offer: FileOfferDto): void {
+    if (!navigator.serviceWorker.controller) {
+      // The download URL exists only inside the SW — without SW control the
+      // request falls through to the host. Fail fast instead of hanging.
+      this.receiveStatus.set('error');
+      const targetId = this.getRemoteConnectionId();
+      if (targetId) this.signalRService.sendCancelFileTransfer(targetId, 'transfer-failed');
+      return;
+    }
+
     this.downloadId = crypto.randomUUID();
 
     const name = encodeURIComponent(offer.name);
     const a = document.createElement('a');
     a.href = `${environment.swInterceptPath}${this.downloadId}?name=${name}&size=${offer.size}`;
-    // download attribute = direct download, no navigation — otherwise the
-    // page's beforeunload guard fires and shows a spurious "Leave site?" dialog
-    a.download = offer.name;
+    // Plain navigation (no `download` attribute): Chrome routes navigations
+    // through the service worker, but a[download] clicks bypass it entirely.
+    // The saved filename comes from the SW's Content-Disposition header.
     a.click();
 
     this.receiveStatus.set('active');

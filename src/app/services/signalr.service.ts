@@ -14,18 +14,6 @@ export class SignalRService {
   private _connectionState = signal<HubConnectionState>(HubConnectionState.Disconnected);
   public connectionState = this._connectionState.asReadonly();
 
-  constructor() {
-    // Warn before refresh/close while in an active session — refreshing
-    // mid-session disconnects the peer and generates a new code
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', (event) => {
-        if (!this._peerSession()?.isFull) return;
-        event.preventDefault();
-        event.returnValue = '';
-      });
-    }
-  }
-
   // ── Whispr P2P ────────────────────────────────────────────
   private _userCode$ = new Subject<string>();
   private _peerSession = signal<PeerSession | null>(null);
@@ -152,6 +140,13 @@ export class SignalRService {
 
     this.connection.onreconnecting(() => {
       this._connectionState.set(HubConnectionState.Reconnecting);
+
+      // Connection dropped — the server-side session is gone or being cleaned
+      // up right now. Clear local state so the UI can never show a connected
+      // peer while the link is down (re-register on reconnected issues a fresh code).
+      this._peerSession.set(null);
+      this._fileOffer.set(null);
+      this._peerDisconnected$.next();
     });
 
     this.connection.onreconnected(async () => {
