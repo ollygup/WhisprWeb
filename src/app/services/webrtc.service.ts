@@ -15,14 +15,24 @@ export class WebrtcService implements OnDestroy {
     private peerSessionData: PeerSession | null = null;
     private subscription = new Subscription();
 
+    // ── Transport loss grace period ──────────────────────────
+    // ICE 'disconnected' fires on transient network blips that often
+    // self-heal. Only treat the session as over when the link stays dead
+    // for the grace window (or the connection state hard-fails).
+    private readonly LINK_LOSS_GRACE_MS = 4000;
+    private linkLossTimer: ReturnType<typeof setTimeout> | null = null;
+    private wasConnected = false;
+
     // ── Public streams ────────────────────────────────────────
     private _connectionState$ = new Subject<ConnectionState>();
     private _data$ = new Subject<ArrayBuffer | string>();
     private _error$ = new Subject<string>();
+    private _sessionEnded$ = new Subject<void>();
 
     public connectionState$ = this._connectionState$.asObservable();
     public data$ = this._data$.asObservable();
     public error$ = this._error$.asObservable();
+    public sessionEnded$ = this._sessionEnded$.asObservable();
 
     private readonly RTC_CONFIG: RTCConfiguration = {
         iceServers: [
@@ -128,7 +138,7 @@ export class WebrtcService implements OnDestroy {
 
         this.dataChannel.binaryType = 'arraybuffer';
 
-        this.dataChannel.onopen = () => { console.log('[WebRTC] Data channel open'); this._connectionState$.next('connected'); };
+        this.dataChannel.onopen = () => { console.log('[WebRTC] Data channel open'); this.wasConnected = true; this._connectionState$.next('connected'); };
         this.dataChannel.onclose = () => { console.log('[WebRTC] Data channel closed'); this._connectionState$.next('disconnected'); };
         this.dataChannel.onerror = (err) => {
             this._error$.next('Data channel error');
@@ -167,12 +177,51 @@ export class WebrtcService implements OnDestroy {
             const state = this.rtcConnection?.connectionState;
             console.log('[WebRTC] Connection state:', state);
             if (state === 'connecting') this._connectionState$.next('connecting');
-            if (state === 'connected') this._connectionState$.next('connected');
-            if (state === 'disconnected' || state === 'failed') {
+            if (state === 'connected') {
+                this.wasConnected = true;
+                this.clearLinkLossTimer();
+                this._connectionState$.next('connected');
+            }
+            if (state === 'disconnected') {
                 this._connectionState$.next('disconnected');
-                setTimeout(() => this.cleanup(), 2000);
+                this.startLinkLossGrace();
+            }
+            if (state === 'failed') {
+                this._connectionState$.next('disconnected');
+                if (this.wasConnected) {
+                    this.endSession();
+                } else {
+                    this.cleanup();
+                }
             }
         };
+    }
+
+    // ── Transport loss ────────────────────────────────────────
+    private startLinkLossGrace(): void {
+        if (!this.rtcConnection || !this.wasConnected) return;
+        if (this.linkLossTimer !== null) return;
+        console.log('[WebRTC] Link lost — grace period started');
+        this.linkLossTimer = setTimeout(() => {
+            this.linkLossTimer = null;
+            console.log('[WebRTC] Link not healed — ending session');
+            this.endSession();
+        }, this.LINK_LOSS_GRACE_MS);
+    }
+
+    private clearLinkLossTimer(): void {
+        if (this.linkLossTimer !== null) {
+            clearTimeout(this.linkLossTimer);
+            this.linkLossTimer = null;
+        }
+    }
+
+    private endSession(): void {
+        if (!this.rtcConnection || !this.wasConnected) return;
+        console.log('[WebRTC] Session ended (transport lost)');
+        this.clearLinkLossTimer();
+        this.cleanup();
+        this._sessionEnded$.next();
     }
 
     // ── SignalR bridge ────────────────────────────────────────
@@ -221,11 +270,13 @@ export class WebrtcService implements OnDestroy {
 
     // ── Cleanup ───────────────────────────────────────────────
     private cleanup(): void {
+        this.clearLinkLossTimer();
         this.dataChannel?.close();
         this.rtcConnection?.close();
         this.dataChannel = undefined;
         this.rtcConnection = undefined;
         this.peerSessionData = null;
+        this.wasConnected = false;
         this._connectionState$.next('idle');
     }
 }

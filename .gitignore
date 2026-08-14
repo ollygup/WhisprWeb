@@ -39,6 +39,10 @@ testem.log
 /typings
 __screenshots__/
 
+# Local-only design docs
+/CONTEXT.md
+/docs/adr/
+
 # System files
 .DS_Store
 Thumbs.db

@@ -127,10 +127,17 @@ export class UserPane implements OnInit, OnDestroy {
     // Peer explicitly disconnected — notify user
     this.sub.add(
       this.signalRService.onPeerDisconnected$.subscribe(() => {
-        this.peerUserCode.set(null);
-        this.peerInput.set('');
-        this.error.set('Peer disconnected from the session.');
-        setTimeout(() => this.error.set(null), 4000);
+        this.showPeerDisconnected();
+      })
+    );
+
+    // Transport lost beyond the grace window — the server may not know
+    // yet (heartbeat backstop), so leave the group explicitly to free
+    // the session and unblock joining.
+    this.sub.add(
+      this.webrtcService.sessionEnded$.subscribe(() => {
+        this.showPeerDisconnected();
+        this.signalRService.leaveGroup();
       })
     );
 
@@ -248,6 +255,13 @@ export class UserPane implements OnInit, OnDestroy {
   clearPeerState() {
     this.peerUserCode.set(null);
     this.peerInput.set('');
+  }
+
+  private showPeerDisconnected() {
+    this.peerUserCode.set(null);
+    this.peerInput.set('');
+    this.error.set('Peer disconnected from the session.');
+    setTimeout(() => this.error.set(null), 4000);
   }
 
   onPeerInput(val: string) { 

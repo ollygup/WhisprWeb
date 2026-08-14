@@ -96,15 +96,14 @@ export class TransferPane implements OnInit, OnDestroy {
 
     this.sub.add(
       this.signalRService.onPeerDisconnected$.subscribe(() => {
-        if (this.downloadId) {
-          navigator.serviceWorker.controller?.postMessage({
-            id: this.downloadId,
-            cancel: true
-          });
-        }
-        this.resetSend();
-        this.resetReceive();
-        this.peerConnected.set(false);
+        this.handlePeerGone();
+      })
+    );
+
+    // Transport lost beyond the grace window — tear down like a peer leave
+    this.sub.add(
+      this.webrtcService.sessionEnded$.subscribe(() => {
+        this.handlePeerGone();
       })
     );
 
@@ -154,6 +153,18 @@ export class TransferPane implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub.unsubscribe();
+  }
+
+  private handlePeerGone(): void {
+    if (this.downloadId) {
+      navigator.serviceWorker.controller?.postMessage({
+        id: this.downloadId,
+        cancel: true
+      });
+    }
+    this.resetSend();
+    this.resetReceive();
+    this.peerConnected.set(false);
   }
 
   // ── Receiver: Swal prompt ─────────────────────────────────
